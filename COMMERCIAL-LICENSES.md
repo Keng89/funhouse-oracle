@@ -37,3 +37,11 @@ Users paste their own keys, so each provider's terms apply to them. For a subscr
 - Cohere's free tier is non-commercial; it is not included.
 
 This is a practical summary, not legal advice.
+
+## Added in v11
+| Component | Used for | Licence |
+|---|---|---|
+| @pixiv/three-vrm 3.5.5 | Anime-style (VRM) characters | MIT (bundled in three-3d.js) |
+| "Aiko" (VRM1_Constraint_Twist_Sample, pixiv Inc.) | Built-in anime character | VRM Public License 1.0: commercial use by corporations, redistribution and modification allowed, credit not required |
+| Coaching programs, Wheel of Life, speaking coach | Coach | Original content |
+| User-uploaded .vrm files | Personal characters | The user is responsible for the rights to files they upload; they stay on their device |
