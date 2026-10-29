@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Funhouse Oracle</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d2420">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Atkinson+Hyperlegible:wght@400;700&family=DM+Mono:wght@400;500&display=swap">
 <style>
@@ -252,6 +255,10 @@ h2{font-family:var(--f-display);font-weight:400;color:var(--brass);font-size:20p
 @keyframes glow{to{opacity:.6}}
 .drift{animation:drift 30s linear infinite alternate}
 @keyframes drift{to{transform:translateX(60px)}}
+body.call .marquee,body.call nav[aria-label="Personality modes"],body.call #stage{display:none!important}
+body.call .stagewrap{flex:1;min-height:0;display:flex;flex-direction:column;padding-block:8px 6px}
+body.call .stage-box,body.call .stage-box.sz-s,body.call .stage-box.sz-l{flex:1;height:auto;min-height:200px}
+body.call .caption{max-height:38%;font-size:15px}
 [hidden]{display:none!important}
 .s3d-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .s3d-load{position:absolute;inset:0;display:grid;place-items:center;background:rgba(8,18,16,.55);color:#fff;font-family:var(--f-mono);font-size:13px;z-index:2}
@@ -1473,6 +1480,7 @@ function speakAs(c,text,after){
     u.pitch=Math.max(.1,Math.min(2,c.pitch*(1+(m.pitch-1)*.3)));u.rate=Math.max(.5,Math.min(1.6,c.rate*(1+(m.rate-1)*.5)));
     const l=replyLang();u.lang=(LANGS[l]&&LANGS[l].b)||"en-US";const v=pickVoice(c,l);if(v)u.voice=v;
     u.onstart=()=>{const el=$("#mascot");if(el){clearTimeout(mascotT);el.classList.remove("is-think","is-happy");el.classList.add("is-talk")}};
+    u.onboundary=e=>{if(window.ST){ST.wb=performance.now();ST.wl=Math.max(2,e.charLength||4);ST.hasWB=true}};
     u.onend=u.onerror=()=>{const el=$("#mascot");if(el)el.classList.remove("is-talk");if(after)after()};
     speechSynthesis.speak(u);
   }catch(e){if(after)after()}
@@ -2480,9 +2488,17 @@ function stageSay(text){
   else if(S.mode==="bard")g="bow";
   else if(S.mode==="prof")g="nod";
   else if(/^(why|what|how|tại sao|點解|为什么)/i.test(u)&&chance(.4))g="shrug";
+  if(/(sorry|sad|oof|rough|tough|bad day|hug|xin lỗi|buồn|mệt|辛苦|唔開心|難過|lo siento|triste|désolé)/i.test(t)){ST.face="sad";ST.faceUntil=performance.now()+3500}
+  else if(/(wow|whoa|no way|really\?|ồ|wowie|嘩|哇|vaya|ouah|plot twist)/i.test(t)){ST.face="surprised";ST.faceUntil=performance.now()+2200}
   ST.hold=null;if(g)play(g);
   if(!(S.voice||S.talk))ST.talkUntil=performance.now()+Math.max(1200,Math.min(9000,text.length*55));else ST.talkUntil=performance.now()+700;
   const cap=$("#caption");if(cap){cap.textContent=text.replace(/\n\n[\s\S]*$/,"");cap.hidden=!S.cc;cap.scrollTop=0}
+}
+function mouthTarget(ts,speaking){
+  if(!speaking)return 0;
+  if(ST.hasWB&&ts-ST.wb<ST.wl*75+120){const t=ts-ST.wb,syl=Math.max(1,Math.round(ST.wl/2.6)),per=Math.min(170,(ST.wl*70)/syl);return .25+.75*Math.abs(Math.sin(Math.PI*t/per))}
+  if(ST.hasWB&&ts-ST.wb<900)return .05;
+  if(ts>ST.mt){ST.mRand=Math.random()<.15?0:.25+Math.random()*.75;ST.mt=ts+90+Math.random()*70}return ST.mRand||0;
 }
 function ease(x){return x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2}
 function frame(ts){
@@ -2508,11 +2524,13 @@ function frame(ts){
   const face=ts<ST.faceUntil?ST.face:null,happy=face==="happy"||face==="laugh";
   for(const [e,hh] of [[R.eL,R.hL],[R.eR,R.hR]]){if(!e)continue;e.setAttribute("transform",`translate(${lx.toFixed(2)} ${ly.toFixed(2)}) scale(1 ${bl})`);e.style.display=happy?"none":"";if(hh)hh.style.display=happy?"":"none"}
   if(R.bL){const by=-P.brow*4;R.bL.setAttribute("transform",`translate(0 ${by.toFixed(1)})`);R.bR.setAttribute("transform",`translate(0 ${by.toFixed(1)})`)}
-  if(speaking){if(ts>ST.mt){ST.mTarget=Math.random()<.15?0:.25+Math.random()*.75;ST.mt=ts+90+Math.random()*70}}else ST.mTarget=0;
+  ST.mTarget=mouthTarget(ts,speaking);
   ST.mouth+=(ST.mTarget-ST.mouth)*.4;
   if(face==="laugh"){R.ml.style.display="";R.mo.style.display="none";R.ms.style.display="none"}
   else if(ST.mouth>.08){R.mo.style.display="";R.mo.setAttribute("ry",(2+ST.mouth*7.5).toFixed(2));R.mo.setAttribute("rx",(7+ST.mouth*2.5).toFixed(2));R.ms.style.display="none";R.ml.style.display="none"}
   else{R.ms.style.display="";R.mo.style.display="none";R.ml.style.display="none"}
+  if(face==="sad")R.ms.setAttribute("d","M188 157 Q200 149 212 157");else R.ms.setAttribute("d","M188 152 Q200 161 212 152");
+  if(face==="surprised"&&ST.mouth<.3){R.mo.style.display="";R.mo.setAttribute("ry","5");R.mo.setAttribute("rx","5");R.ms.style.display="none"}
 }
 
 /* ---------- stage UI ---------- */
@@ -2631,13 +2649,13 @@ CAST3D.forEach(c=>{c.pitch={kid:c.g==="f"?1.5:1.4,adult:c.g==="f"?1.05:.9,senior
 const BG3D=[{id:"home",rot:0},{id:"studio",rot:0},{id:"berlin",rot:1.2},{id:"bridge",rot:0},{id:"park",rot:0},{id:"forest",rot:0},{id:"mountain",rot:0},{id:"dawn",rot:0},{id:"venice",rot:0},{id:"savanna",rot:0},{id:"warehouse",rot:0},{id:"manor",rot:0}];
 const UI4={
  en:{s3d:"3D",s3dOn:"3D realistic mode",s3dOff:"2D cartoon mode",s3dLoad:"Loading 3D person…",s3dFail:"3D couldn't start.",cam:"Camera",snap:"Photo",snapHint:"Long-press or right-click to save the photo.",close:"Close",
-  b3_home:"Living room",b3_studio:"Photo studio",b3_berlin:"City square",b3_bridge:"City bridge",b3_park:"Park",b3_forest:"Forest",b3_mountain:"Mountains",b3_dawn:"Dawn field",b3_venice:"Sunset",b3_savanna:"Night sky",b3_warehouse:"Warehouse",b3_manor:"Old manor",b3_photo:"My photo",b3_pano:"My 360° photo",
+  b3_home:"Living room",b3_studio:"Photo studio",b3_berlin:"City square",b3_bridge:"City bridge",b3_park:"Park",b3_forest:"Forest",b3_mountain:"Mountains",b3_dawn:"Dawn field",b3_venice:"Sunset",b3_savanna:"Night sky",b3_warehouse:"Warehouse",b3_manor:"Old manor",b3_photo:"My photo",b3_pano:"My 360° photo",b3_auto:"Auto (time of day)",callOn:"Video call mode",callOff:"Chat view",
   cam_face:"Close-up",retry:"Try again",use2d:"Use cartoon stage",cam_upper:"Upper body",cam_full:"Full body",realCast:"Realistic people"},
  vi:{s3d:"3D",s3dOn:"Chế độ 3D chân thật",s3dOff:"Chế độ hoạt hình 2D",s3dLoad:"Đang tải người 3D…",s3dFail:"Chưa chạy được 3D.",cam:"Máy quay",snap:"Chụp ảnh",snapHint:"Nhấn giữ hoặc chuột phải để lưu ảnh.",close:"Đóng",
-  b3_home:"Phòng khách",b3_studio:"Studio chụp ảnh",b3_berlin:"Quảng trường",b3_bridge:"Cây cầu thành phố",b3_park:"Công viên",b3_forest:"Rừng",b3_mountain:"Núi",b3_dawn:"Cánh đồng bình minh",b3_venice:"Hoàng hôn",b3_savanna:"Bầu trời đêm",b3_warehouse:"Nhà kho",b3_manor:"Biệt thự cổ",b3_photo:"Ảnh của tôi",b3_pano:"Ảnh 360° của tôi",
+  b3_home:"Phòng khách",b3_studio:"Studio chụp ảnh",b3_berlin:"Quảng trường",b3_bridge:"Cây cầu thành phố",b3_park:"Công viên",b3_forest:"Rừng",b3_mountain:"Núi",b3_dawn:"Cánh đồng bình minh",b3_venice:"Hoàng hôn",b3_savanna:"Bầu trời đêm",b3_warehouse:"Nhà kho",b3_manor:"Biệt thự cổ",b3_photo:"Ảnh của tôi",b3_pano:"Ảnh 360° của tôi",b3_auto:"Tự động (theo giờ)",callOn:"Chế độ gọi video",callOff:"Xem chat",
   cam_face:"Cận mặt",retry:"Thử lại",use2d:"Dùng sân khấu hoạt hình",cam_upper:"Nửa người",cam_full:"Toàn thân",realCast:"Người thật 3D"},
  yue:{s3d:"3D",s3dOn:"3D 真實模式",s3dOff:"2D 卡通模式",s3dLoad:"載入緊 3D 人物…",s3dFail:"3D 開唔到。",cam:"鏡頭",snap:"影相",snapHint:"長按或者右鍵就可以儲存相片。",close:"關閉",
-  b3_home:"客廳",b3_studio:"影樓",b3_berlin:"城市廣場",b3_bridge:"城市大橋",b3_park:"公園",b3_forest:"森林",b3_mountain:"山",b3_dawn:"黎明田野",b3_venice:"日落",b3_savanna:"夜空",b3_warehouse:"貨倉",b3_manor:"古老大宅",b3_photo:"我嘅相",b3_pano:"我嘅 360° 相",
+  b3_home:"客廳",b3_studio:"影樓",b3_berlin:"城市廣場",b3_bridge:"城市大橋",b3_park:"公園",b3_forest:"森林",b3_mountain:"山",b3_dawn:"黎明田野",b3_venice:"日落",b3_savanna:"夜空",b3_warehouse:"貨倉",b3_manor:"古老大宅",b3_photo:"我嘅相",b3_pano:"我嘅 360° 相",b3_auto:"自動（跟時間）",callOn:"視像通話模式",callOff:"睇對話",
   cam_face:"特寫",retry:"再試",use2d:"用卡通舞台",cam_upper:"半身",cam_full:"全身",realCast:"真人 3D"}};
 for(const k of ["en","vi","yue"])Object.assign(PACKS[k].ui,UI4[k]);
 
@@ -2675,7 +2693,7 @@ async function init3d(){
     const cv=document.createElement("canvas");cv.className="s3d-canvas";box.prepend(cv);E.canvas=cv;
     cv.addEventListener("click",()=>{const g=pick(["wave","laugh","cheer","dance","heart","nod"]);play(g);if(g==="laugh"||g==="heart"||g==="cheer"){ST.face=g==="laugh"?"laugh":"happy";ST.faceUntil=performance.now()+1800}sfx("blip2")});
     const r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:false,preserveDrawingBuffer:false});
-    r.setPixelRatio(Math.min(2,window.devicePixelRatio||1));r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.05;
+    r.setPixelRatio(Math.min(innerWidth<700?1.6:2,window.devicePixelRatio||1));r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.05;
     E.renderer=r;E.scene=new THREE.Scene();E.camera=new THREE.PerspectiveCamera(28,1,.05,200);
     const key=new THREE.DirectionalLight(0xfff2e0,1.1);key.position.set(1.2,2.4,2.2);E.scene.add(key);
     const fill=new THREE.HemisphereLight(0xdfefff,0x3a2a20,.35);E.scene.add(fill);
@@ -2700,6 +2718,7 @@ function resize3d(){if(!E.renderer)return;const b=$("#stageBox");const w=b.clien
 async function setBg3d(id){
   const THREE=E.T;E.bg=id;store.set("bg3d",id);
   let tex;
+  if(id==="auto"){const hr=new Date().getHours();E.bgAuto=true;id=hr<5?"savanna":hr<8?"dawn":hr<17?"park":hr<20?"venice":"savanna"}else E.bgAuto=false;
   if(id==="photo"||id==="pano"){
     if(!S.bgImg){$("#bgFile").click();return}
     tex=await new THREE.TextureLoader().loadAsync(S.bgImg);tex.colorSpace=THREE.SRGBColorSpace;
@@ -2737,6 +2756,7 @@ async function loadChar3d(id){
   E.rest=new Map();m.traverse(o=>{if(o.isBone)E.rest.set(o,{q:o.quaternion.clone(),p:o.position.clone()})});
   E.P=rest3();E.queue=[];E.cur=null;frameCam(true);
   if(ov)ov.hidden=true;$("#stageName").textContent=c.name+" · "+MODES[S.mode].em+" "+modeName(S.mode);
+  if(E.on)$("#mascotSlot").innerHTML='<img id="mascot" class="mascot" src="avatars/'+c.f+'.jpg" alt="" style="border-radius:50%;object-fit:cover;border:2px solid var(--brass)">';
 }
 function frameCam(snap){
   const THREE=E.T;if(!THREE||!E.bones.head)return;
@@ -2745,7 +2765,7 @@ function frameCam(snap){
   if(E.cam==="face"){tgt=hp.clone().add(new THREE.Vector3(0,.06,0));dist=.8}
   else if(E.cam==="full"){tgt=new THREE.Vector3(0,hp.y*.55,0);dist=hp.y*2.1+.6}
   else{tgt=hp.clone().add(new THREE.Vector3(0,-.11,0));dist=1.5}
-  const asp=E.camera.aspect||1.4;if(asp<1)dist*=1.25/asp;
+  const asp=E.camera.aspect||1.4;if(asp<1){dist*=Math.max(1,.78/asp);tgt=tgt.clone().add(new THREE.Vector3(0,-(1/asp-1)*.12*(E.cam==="full"?3:1),0))}
   E.camTgt=tgt;E.camDist=dist;if(snap){E.camera.position.set(tgt.x,tgt.y+.03,tgt.z+dist);E.camera.lookAt(tgt)}
 }
 const _q=()=>new E.T.Quaternion(),_v=()=>new E.T.Vector3();
@@ -2756,7 +2776,7 @@ function avDir(a,side){const THREE=E.T;const s=side==="l"?E.sL:-E.sL;const d=new
 function lerpP(a,b,e){const o={};for(const k in a){const x=a[k],y=b[k];o[k]=Array.isArray(x)?[x[0]+(y[0]-x[0])*e,x[1]+(y[1]-x[1])*e,x[2]+(y[2]-x[2])*e]:x+(y-x)*e}return o}
 function play3(name,keep){if(!G3[name])return;if(!keep){E.queue=[];E.cur=null}E.queue.push(...G3[name]())}
 function loop3(ts){
-  E.raf=requestAnimationFrame(loop3);if(!E.ready||!E.model)return;if(ts-E.last<28)return;const dt=Math.min(.1,(ts-E.last)/1000);E.last=ts;
+  E.raf=requestAnimationFrame(loop3);if(!E.ready||!E.model||document.hidden)return;if(ts-E.last<28)return;const dt=Math.min(.1,(ts-E.last)/1000);E.last=ts;
   const THREE=E.T,B=E.bones;
   const speaking=("speechSynthesis" in window&&speechSynthesis.speaking)||ts<ST.talkUntil;
   // gesture queue
@@ -2784,18 +2804,18 @@ function loop3(ts){
   aimW(B.lU,B.lF,avDir(P.lU,"l"));aimW(B.lF,B.lH,avDir(P.lF,"l"));aimW(B.rU,B.rF,avDir(P.rU,"r"));aimW(B.rF,B.rH,avDir(P.rF,"r"));
   // face: blink
   if(ts>E.blinkAt&&!E.blinkEnd)E.blinkEnd=ts+140;let bl=0;if(E.blinkEnd){if(ts<E.blinkEnd)bl=1;else{E.blinkEnd=0;E.blinkAt=ts+1800+Math.random()*3500}}
-  const happy=face==="happy"||face==="laugh";if(happy)bl=Math.max(bl,.35);
+  const happy=face==="happy"||face==="laugh";if(happy)bl=Math.max(bl,.35);if(face==="sad")bl=Math.max(bl,.28);
   const lidD=(window.__lid||.0085)*bl;moveW(B.lLidT,new THREE.Vector3(0,-lidD,0));moveW(B.rLidT,new THREE.Vector3(0,-lidD,0));moveW(B.lLidB,new THREE.Vector3(0,lidD*.25,0));moveW(B.rLidB,new THREE.Vector3(0,lidD*.25,0));
   // mouth
-  if(speaking){if(ts>E.mt){E.mT=Math.random()<.14?0:.25+Math.random()*.75;E.mo=Math.random()<.3;E.mt=ts+85+Math.random()*75}}else E.mT=face==="laugh"?.75:0;
+  E.mT=speaking?mouthTarget(ts,true):face==="laugh"?.75:face==="surprised"?.35:0;if(ts>E.mt){E.mo=Math.random()<.3;E.mt=ts+140}
   E.mouth+=(E.mT-E.mouth)*.45;
   rotW(B.jaw,X,E.mouth*.2);
-  const sm=Math.max(P.smile,happy?1:0),u=.0055;
+  const sad=face==="sad",sur=face==="surprised";const sm=sad?-.8:Math.max(P.smile,happy?1:0),u=.0055;
   const out=(side)=>new THREE.Vector3((side==="l"?E.sL:-E.sL),0,0).applyQuaternion(E.root.quaternion);
   const round=speaking&&E.mo?E.mouth:0;
   moveW(B.lCorner,out("l").multiplyScalar(u*(sm*.9-round*.9)).add(new THREE.Vector3(0,u*sm*.9,0)));moveW(B.rCorner,out("r").multiplyScalar(u*(sm*.9-round*.9)).add(new THREE.Vector3(0,u*sm*.9,0)));
   moveW(B.lCheek,new THREE.Vector3(0,u*sm*.6,0));moveW(B.rCheek,new THREE.Vector3(0,u*sm*.6,0));
-  const bw=P.brow*u*1.1;moveW(B.lBrowI,new THREE.Vector3(0,bw,0));moveW(B.rBrowI,new THREE.Vector3(0,bw,0));moveW(B.mBrow,new THREE.Vector3(0,bw*.8,0));moveW(B.lBrowO,new THREE.Vector3(0,bw*.6,0));moveW(B.rBrowO,new THREE.Vector3(0,bw*.6,0));
+  const bw=(sur?1.4:P.brow)*u*1.1,bi=sad?u*1.3:0;moveW(B.lBrowI,new THREE.Vector3(0,bw+bi,0));moveW(B.rBrowI,new THREE.Vector3(0,bw+bi,0));if(sur){moveW(B.lLidT,new THREE.Vector3(0,u*.35,0));moveW(B.rLidT,new THREE.Vector3(0,u*.35,0))}moveW(B.mBrow,new THREE.Vector3(0,bw*.8,0));moveW(B.lBrowO,new THREE.Vector3(0,bw*.6,0));moveW(B.rBrowO,new THREE.Vector3(0,bw*.6,0));
   E.root.position.y=(E.root.userData.baseY??(E.root.userData.baseY=E.root.position.y))+P.by;
   // camera drift
   if(E.camTgt){const a=Math.sin(ts/5200)*.06,t=E.camTgt,d=E.camDist;const want=new THREE.Vector3(t.x+Math.sin(a)*d,t.y+.03+Math.sin(ts/4300)*.012,t.z+Math.cos(a)*d);E.camera.position.lerp(want,Math.min(1,dt*2.5));E.camera.lookAt(t)}
@@ -2813,7 +2833,7 @@ function apply3dMode(){
   if(E.canvas)E.canvas.style.display=on?"":"none";
   $("#btn3d").classList.toggle("on",on);$("#camBtn").hidden=!on;$("#snapBtn").hidden=!on;
   if(on){init3d().then(ok=>{if(ok&&!E.raf)E.raf=requestAnimationFrame(loop3)})}
-  else{if(E.raf){cancelAnimationFrame(E.raf);E.raf=0}$("#stageName").textContent=curChar().name+" · "+MODES[S.mode].em+" "+modeName(S.mode)}
+  else{if(E.raf){cancelAnimationFrame(E.raf);E.raf=0}$("#stageName").textContent=curChar().name+" · "+MODES[S.mode].em+" "+modeName(S.mode);renderMascot()}
   if(!$("#stageSheet").hidden)renderSheet();
 }
 {const tools=document.querySelector(".stage-tools");
@@ -2827,6 +2847,7 @@ function apply3dMode(){
   if(sheetMode==="chars"){
     CAST3D.forEach(c=>{const it=h("button",{type:"button",class:"sheet-item","aria-pressed":c.id===E.char,onclick:async()=>{if(!E.ready)return;await loadChar3d(c.id);renderSheet();play3("wave");speakAs(c,fill(HI_IM[replyLang()]||HI_IM.en,{n:c.name}))}},h("img",{src:"avatars/"+c.f+".jpg",alt:"",style:"width:51px;height:51px;border-radius:50%;object-fit:cover"}),h("span",null,c.name));sh.append(it)});
   } else {
+    sh.append(h("button",{type:"button",class:"sheet-item","aria-pressed":E.bg==="auto",onclick:async()=>{if(!E.ready)return;await setBg3d("auto");renderSheet();sfx("blip")}},h("span",{class:"em"},"🕒"),h("span",null,T("b3_auto"))));
     BG3D.forEach(b=>{const it=h("button",{type:"button",class:"sheet-item","aria-pressed":b.id===E.bg,onclick:async()=>{if(!E.ready)return;await setBg3d(b.id);renderSheet();sfx("blip")}},h("img",{src:"bg/"+b.id+".jpg",alt:"",style:"width:68px;height:51px;border-radius:8px;object-fit:cover"}),h("span",null,T("b3_"+b.id)));sh.append(it)});
     for(const id of ["photo","pano"])sh.append(h("button",{type:"button",class:"sheet-item","aria-pressed":E.bg===id,onclick:()=>{E.pendingBg=id;if(S.bgImg)setBg3d(id).then(renderSheet);else $("#bgFile").click()}},h("span",{class:"em"},id==="pano"?"🌐":"📷"),h("span",null,T("b3_"+id))));
   }};}
@@ -2839,6 +2860,16 @@ $("#bgFile").addEventListener("change",()=>{if(E.on&&E.pendingBg)setTimeout(()=>
 {const pic=()=>'<img src="avatars/'+cur3d().f+'.jpg" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;display:block">';
  const _am=addMsg;addMsg=function(who,text){const b=_am(who,text);if(E.on&&E.ready&&who!=="me"){const av=b.closest(".msg")?.querySelector(".avatar");if(av){av.innerHTML=pic();av.title=cur3d().name}}return b};
  const _ty=typing;typing=function(){const r=_ty();if(E.on&&E.ready){const av=r.querySelector(".avatar");if(av)av.innerHTML=pic()}return r};}
+
+/* video-call mode: big stage, captions, chat box stays */
+S.call=store.get("call",false);
+{const tools=document.querySelector(".stage-tools");tools.insertBefore(h("button",{type:"button",id:"callBtn","aria-label":"Video call mode",title:"Video call",onclick:()=>{S.call=!S.call;store.set("call",S.call);applyCall();toast(S.call?"📞 "+T("callOn"):"💬 "+T("callOff"));sfx("coin")}},"📞"),$("#ccBtn"));}
+function applyCall(){const on=S.call&&S.stageOn&&!$("#view-chat").hidden;document.body.classList.toggle("call",on);$("#callBtn").classList.toggle("on",S.call);if(on){const c=$("#caption");c.hidden=!S.cc||!c.textContent}if(E.renderer)setTimeout(resize3d,60)}
+{const _st4=switchTab;switchTab=function(v){_st4(v);applyCall()};}
+applyCall();
+
+/* offline app (works when hosted on your own site, e.g. GitHub Pages) */
+if("serviceWorker" in navigator&&location.protocol==="https:"&&!/claude\.ai|claudeusercontent|anthropic/.test(location.hostname)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})})}
 /* default: 3D when WebGL is available and the user hasn't chosen */
 if(S.stage3d===null){let gl=false;try{const c=document.createElement("canvas");gl=!!(c.getContext("webgl2")||c.getContext("webgl"))}catch(e){}S.stage3d=gl}
 apply3dMode();

@@ -11,6 +11,8 @@ A fun, mostly-offline AI chat website: ask anything, make wishes, play games, se
 - **Future tab**: crystal ball forecast, horoscope + Chinese zodiac, destiny cards, message from future you, time capsule.
 - **Lingo Lab**: learn languages from zero (offline lessons for 10 languages, speaking score, flashcards) + AI tutor up to C2.
 - **15 games**: party mode, riddles, mind reader, would you rather, truth or dare and more.
+- **Video-call mode**, word-timed lip-sync, happy / sad / surprised faces, scenes that follow the time of day.
+- **Installable offline app** on GitHub Pages (service worker caches everything after the first visit).
 - Voice, hands-free talk mode, optional in-browser AI model (WebLLM).
 
 ## Run it
