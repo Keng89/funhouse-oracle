@@ -1,0 +1,10 @@
+Funhouse Oracle - 3D asset credits
+
+3D people: Microsoft Rocketbox Avatar Library
+  https://github.com/microsoft/Microsoft-Rocketbox
+  License: MIT (see avatars/ROCKETBOX-LICENSE.txt). Converted to glTF, textures resized, meshopt-compressed.
+
+Background panoramas: Poly Haven (HDRI Haven), via pmndrs/drei-assets
+  https://polyhaven.com  - License: CC0 (public domain)
+
+3D engine: three.js (MIT) - https://threejs.org
