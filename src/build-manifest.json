@@ -1,0 +1,32 @@
+{
+ "scripts": [
+  "01-core.js",
+  "02-cantonese-future-lingo.js",
+  "03-stage2d-scenes-avatar-builder.js",
+  "04-stage3d-rocketbox.js",
+  "05-v8-sound-photos-voicegames.js",
+  "06-v9-people-wardrobe-ai-brains.js",
+  "07-v10-english-academy-habits-voice-companion-today.js",
+  "08-v11-v12-beauty-anime-coach-teacher-navigation.js",
+  "09-v13-stories-character-games.js",
+  "10-v14-help-tour-tips-settings.js",
+  "11-v15-feedback-explanations-level-tests.js",
+  "12-v16-kids-daily5-backup-skills-conversations.js",
+  "13-v17-legal-safety.js"
+ ],
+ "seps": [
+  "\n",
+  "\n",
+  "\n",
+  "\n\n",
+  "\n\n",
+  "\n\n",
+  "\n",
+  "\n",
+  "\n",
+  "\n",
+  "\n",
+  "\n",
+  "\n"
+ ]
+}

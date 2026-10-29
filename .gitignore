@@ -1,0 +1,5 @@
+build/
+csp.html
+node_modules/
+tools/3d/node_modules/
+__pycache__/

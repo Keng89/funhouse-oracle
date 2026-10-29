@@ -15,6 +15,12 @@ A fun, mostly-offline AI chat website: ask anything, make wishes, play games, se
 - **Installable offline app** on GitHub Pages (service worker caches everything after the first visit).
 - Voice, hands-free talk mode, optional in-browser AI model (WebLLM).
 
+## For developers
+- **Start here:** [docs/HANDOFF.md](docs/HANDOFF.md) explains the whole app, the code layout, the rules, how to build, test and publish, and the roadmap.
+- Source is in `src/`. Build with `python3 tools/build.py` (writes `index.html`).
+- Test with `python3 tools/serve_test.py` + `bash tests/run_all.sh` (Playwright).
+- Legal pages: [legal/](legal/index.html) (Terms, Privacy, AI & Safety, Kids & Parents, Disclaimers, Licences, Accessibility).
+
 ## Run it
 Static site, no build step. Enable **GitHub Pages** (Settings → Pages → Deploy from branch → `main` / root).
 Locally: `python3 -m http.server` then open http://localhost:8000 (opening the file directly won't load the 3D people).

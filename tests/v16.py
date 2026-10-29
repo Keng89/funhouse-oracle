@@ -1,0 +1,80 @@
+import asyncio,json
+from playwright.async_api import async_playwright
+async def main():
+    async with async_playwright() as p:
+        b=await p.chromium.launch(args=["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"])
+        ctx=await b.new_context(viewport={"width":390,"height":844},device_scale_factor=2,accept_downloads=True)
+        pg=await ctx.new_page()
+        errs=[];pg.on("pageerror",lambda e:errs.append("PAGEERR "+str(e)[:300]))
+        pg.on("console",lambda m:errs.append("console:"+m.text[:250]) if m.type=="error" and "Failed to load resource" not in m.text and "AudioContext" not in m.text else None)
+        pg.on("dialog",lambda d:asyncio.ensure_future(d.accept()))
+        await pg.goto("http://127.0.0.1:8765/csp.html")
+        await pg.evaluate("localStorage.clear();localStorage.setItem('fho_onb2','true');localStorage.setItem('fho_toured','true');localStorage.setItem('fho_legalV','1');localStorage.setItem('fho_hints','{\"chat\":1,\"learn\":1,\"today\":1,\"games\":1}');localStorage.setItem('fho_lastSeen',String(Date.now()-5*864e5))");await pg.reload()
+        await pg.wait_for_timeout(5000)
+        print("welcome back:",await pg.evaluate("[...document.querySelectorAll('.hb-modal h2,.hb-modal h3,.hb-modal b')].map(e=>e.textContent).join('|').slice(0,80)"))
+        await pg.screenshot(path="t16_wb.png")
+        await pg.evaluate("document.querySelectorAll('.hb-modal').forEach(m=>m.remove())")
+        print("qs d5:",await pg.evaluate("!!document.querySelector('.qs-d5')"))
+        # daily 5
+        await pg.evaluate("startDaily()");await pg.wait_for_timeout(400)
+        n=await pg.evaluate("ACV.les.items.map(i=>i.t).join(',')");print("daily items",n)
+        for i in range(12):
+            st=await pg.evaluate("ACV.les.state")
+            if st=="end": break
+            t=await pg.evaluate("ACV.les.items[ACV.les.i].t")
+            if t=="mc": await pg.evaluate("(()=>{const it=ACV.les.items[ACV.les.i];[...document.querySelectorAll('#acad .ac-opt')].find(b=>b.textContent===it.ans).click()})()")
+            elif t=="build": await pg.evaluate("(()=>{const it=ACV.les.items[ACV.les.i];const ws=it.target.replace(/[.,!?]/g,'').split(/\\s+/);const bank=[...document.querySelectorAll('#acad .ac-bank .ac-tile2')];ws.forEach(w=>{bank.find(b=>!b.disabled&&b.textContent===w).click()});document.querySelector('#acad .ac-check').click()})()")
+            elif t=="speak":
+                await pg.evaluate("[...document.querySelectorAll('#acad .btn')].find(b=>b.textContent===TT('ac_said')).click()");await pg.wait_for_timeout(200);continue
+            await pg.wait_for_timeout(150)
+            if i==2: await pg.screenshot(path="t16_d5.png")
+            await pg.evaluate("document.querySelector('#acad .ac-fb .btn:last-child')?.click()");await pg.wait_for_timeout(150)
+        await pg.wait_for_timeout(400)
+        print("daily done",await pg.evaluate("[ACV.les.state,JSON.stringify(ACD.daily),JSON.stringify(ACD.log),Object.keys(ACD.sk)]"))
+        await pg.evaluate("ACV.view='home';renderAcad()");await pg.wait_for_timeout(300)
+        await pg.screenshot(path="t16_home.png")
+        await pg.evaluate("document.querySelector('.sk-panel').scrollIntoView()");await pg.wait_for_timeout(200);await pg.screenshot(path="t16_skills.png")
+        # convo
+        await pg.evaluate("startConvo('cafe')");await pg.wait_for_timeout(600)
+        for a in ["Can I have a latte, please?","banana","Medium please","For here","No thanks","Card","Thank you!"]:
+            await pg.fill(".cv-input .ac-input",a);await pg.click(".cv-input .btn:last-child");await pg.wait_for_timeout(600)
+        print("convo:",await pg.evaluate("[CV.done,CV.node,CV.turns,CV.log.length]"))
+        await pg.screenshot(path="t16_convo.png")
+        await pg.evaluate("startConvo('meet')");await pg.wait_for_timeout(500)
+        for a in ["Hi, I'm Linh","I'm from Vietnam","I'm a student","I study English","I like music","Bye!"]:
+            await pg.fill(".cv-input .ac-input",a);await pg.click(".cv-input .btn:last-child");await pg.wait_for_timeout(500)
+        print("meet:",await pg.evaluate("[CV.done,CV.vars,CV.log.filter(l=>l[0]==='b').map(l=>l[1]).slice(1,3)]"))
+        # memory
+        await pg.evaluate("switchTab('me')");await pg.wait_for_timeout(300)
+        await pg.fill(".mm-add","My daughter's name is Mai");await pg.click(".mm-addrow .btn");await pg.wait_for_timeout(200)
+        print("mem:",await pg.evaluate("MEM.facts.map(f=>[f.t,!!f.pin])"))
+        # backup
+        bk=await pg.evaluate("JSON.stringify(backupData())");print("backup keys",len(json.loads(bk)["data"]))
+        # kids
+        await pg.evaluate("openKids()");await pg.wait_for_timeout(300)
+        ins=await pg.query_selector_all(".hb-modal .pin-in");await ins[0].fill("1234");await ins[1].fill("1234")
+        await pg.evaluate("[...document.querySelectorAll('.hb-modal .btn')].pop().click()");await pg.wait_for_timeout(400)
+        await pg.evaluate("[...document.querySelectorAll('.hb-modal .btn')].find(b=>b.textContent.includes('Add a child')).click()");await pg.wait_for_timeout(300)
+        await pg.fill(".hb-modal input.ac-input","Lily");await pg.evaluate("[...document.querySelectorAll('.hb-modal .btn')].pop().click()");await pg.wait_for_timeout(400)
+        await pg.screenshot(path="t16_kidsadmin.png")
+        await pg.evaluate("[...document.querySelectorAll('.hb-modal .btn')].find(b=>b.textContent.includes('Start kids')).click()");await pg.wait_for_timeout(1200)
+        print("kids:",await pg.evaluate("[document.body.classList.contains('kids'),!$('#view-kids').hidden,getComputedStyle(document.querySelector('.tabs')).display,ACD.lv,S.mode,S.name]"))
+        await pg.screenshot(path="t16_kids.png")
+        await pg.evaluate("switchTab('games')");await pg.wait_for_timeout(200)
+        print("games blocked:",await pg.evaluate("!$('#view-kids').hidden"))
+        n0=await pg.evaluate("CMP.list.length")
+        await pg.evaluate("switchTab('chat')");await pg.fill("#input","hello my name is Lily");await pg.click("#sendBtn");await pg.wait_for_timeout(2500)
+        print("kid chat saved?",n0,await pg.evaluate("CMP.list.length"),"mem facts",await pg.evaluate("MEM.facts.length"))
+        await pg.screenshot(path="t16_kidchat.png")
+        await pg.evaluate("switchTab('learn')");await pg.wait_for_timeout(300)
+        print("kid learn levels visible:",await pg.evaluate("[...document.querySelectorAll('details.ac-level')].filter(d=>getComputedStyle(d).display!=='none').map(d=>d.dataset.lv)"))
+        await pg.screenshot(path="t16_kidlearn.png")
+        await pg.evaluate("kidUse().m=999;kidTick(true)");await pg.wait_for_timeout(300)
+        print("lock:",await pg.evaluate("!!$('#kidLock')"))
+        await pg.screenshot(path="t16_lock.png")
+        await pg.evaluate("[...document.querySelectorAll('#kidLock .btn')][1].click()");await pg.wait_for_timeout(300)
+        await pg.fill(".hb-modal .pin-in","1234");await pg.wait_for_timeout(800)
+        print("exited:",await pg.evaluate("[document.body.classList.contains('kids'),KIDS.active,ACD.lv,Object.keys(ACD.daily).length,S.mode,!!$('#kidLock')]"))
+        print("\n".join(errs[:15]) or "no errors")
+        await b.close()
+asyncio.run(main())

@@ -1,0 +1,259 @@
+
+
+<div class="app">
+  <header class="marquee pad">
+    <div class="marquee-inner">
+      <div class="bulbs" aria-hidden="true"></div>
+      <button class="mascot-btn" id="mascotBtn" type="button" aria-label="Choose a talking character"><span id="mascotSlot"></span></button>
+      <div class="logo">Funhouse Oracle<small data-i="tagline">Insert question · receive joy</small></div>
+      <div class="chips-top">
+        <button class="hchip" id="brainChip" type="button"><span class="dot" id="brainDot"></span><span id="brainLabel">Spark</span></button>
+        <button class="hchip" id="langChip" type="button">🌐 <span id="langLabel">Auto</span></button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="pad" aria-label="Personality modes">
+    <div class="modes" id="modes"></div>
+    <div class="mode-line" id="modeLine"></div>
+  </nav>
+
+  <section class="stagewrap pad" id="stageWrap" hidden>
+    <div class="stage-box" id="stageBox">
+      <svg class="stage-bg" id="stageBg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+      <svg class="stage-char" id="stageChar" viewBox="45 48 310 252" preserveAspectRatio="xMidYMax meet" role="img" aria-label="Talking character"></svg>
+      <div class="stage-name" id="stageName"></div>
+      <div class="caption" id="caption" hidden></div>
+      <div class="stage-tools">
+        <button type="button" data-s="chars" aria-label="Characters">🧍</button>
+        <button type="button" data-s="bgs" aria-label="Backgrounds">🖼️</button>
+        <button type="button" data-s="moves" aria-label="Moves">👋</button>
+        <button type="button" id="ccBtn" aria-label="Captions">CC</button>
+        <button type="button" id="sizeBtn" aria-label="Stage size">⤢</button>
+        <button type="button" id="stageHide" aria-label="Hide stage">✕</button>
+      </div>
+    </div>
+    <div class="stage-sheet" id="stageSheet" hidden></div>
+    <input type="file" id="bgFile" accept="image/*" hidden>
+  </section>
+
+  <main class="stage pad" id="stage">
+    <section class="view" id="view-chat">
+      <div class="chat" id="chat" aria-live="polite"></div>
+      <div class="chips" id="chips"></div>
+    </section>
+
+    <section class="view" id="view-games" hidden>
+      <h2 data-i="gTitle">Arcade Games</h2>
+      <p class="sub" data-i="gSub">Pick one and the Oracle runs it in the chat. Works fully offline.</p>
+      <button class="daily" id="dailyBtn" type="button"><span class="em">📅</span><div><b data-i="daily">Today's Riddle</b><span id="dailyState" data-i="dailyD">One new riddle every day. Keep your streak.</span></div></button>
+      <div class="games" id="games"></div>
+    </section>
+
+    <section class="view" id="view-wish" hidden>
+      <h2 data-i="wTitle">The Wishing Slot</h2>
+      <p class="sub" data-i="wSub">Drop in a wish. The Genie grants it, with a twist, and prints you a card to keep.</p>
+      <div class="wish-box">
+        <label class="label" for="wishInput" data-i="wLabel">Your wish</label>
+        <textarea id="wishInput" maxlength="160" data-ip="wPh" placeholder="I wish my homework did itself…"></textarea>
+        <div class="btn-row">
+          <button class="btn" id="wishBtn" type="button" data-i="grant">Grant my wish</button>
+          <button class="btn ghost" id="wishRandom" type="button" data-i="surprise">Surprise me</button>
+        </div>
+        <div id="wishResult"></div>
+        <div>
+          <div class="label" style="margin-top:12px" data-i="jar">Wish jar</div>
+          <div class="list" id="wishList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-me" hidden>
+      <h2 data-i="mTitle">Settings &amp; Stats</h2>
+      <p class="sub" data-i="mSub">Everything is saved only in this browser.</p>
+
+      <div class="panel" id="charPanel">
+        <span class="label" data-i="chars">Talking characters</span>
+        <span class="note" data-i="charsN">Pick who talks to you. Each one has its own face and voice. Tap ▶ to hear them.</span>
+        <div class="chars" id="chars"></div>
+        <div class="field">
+          <label class="label" for="voiceSel" data-i="sysVoice">Device voice</label>
+          <select id="voiceSel"></select>
+          <span class="note" data-i="sysVoiceN">Auto picks a voice that fits the character and your language. Voices come from your phone or computer.</span>
+        </div>
+        <div class="toggle">
+          <div><b data-i="talkMode">Hands-free talk mode</b><div class="note" data-i="talkModeN">The character speaks, then listens for your answer, like a phone call.</div></div>
+          <button class="switch" id="talkSw" role="switch" aria-checked="false" aria-label="Hands-free talk mode"></button>
+        </div>
+      </div>
+
+      <div class="panel" id="builderPanel">
+        <span class="label" data-i="bTitle">Avatar builder</span>
+        <span class="note" data-i="bN">Design your own talking person: any age, any look.</span>
+        <div class="builder">
+          <svg class="bprev" id="bPrev" viewBox="45 48 310 252" preserveAspectRatio="xMidYMax meet" aria-hidden="true"></svg>
+          <div class="bctl" id="bCtl"></div>
+        </div>
+        <div class="btn-row"><button class="btn" id="bSave" type="button" data-i="bSave">Save &amp; use</button><button class="btn ghost" id="bRandom" type="button" data-i="bRandom">🎲 Random</button></div>
+      </div>
+
+      <div class="panel">
+        <div class="field">
+          <label class="label" for="langSel" data-i="langL">Language</label>
+          <select id="langSel"></select>
+          <span class="note" data-i="langN">Auto detects the language you type in. Full offline replies in English, Tiếng Việt, Español, Français and 中文. Load the AI brain to chat in every language.</span>
+        </div>
+        <div class="field">
+          <label class="label" for="nameInput" data-i="nameL">What should the Oracle call you?</label>
+          <input id="nameInput" maxlength="24" data-ip="nameP" placeholder="Your name or nickname">
+        </div>
+        <div class="field">
+          <span class="label" data-i="spice">Spice level</span>
+          <div class="seg" id="spiceSeg">
+            <button type="button" data-v="0" data-i="sp0">Gentle</button>
+            <button type="button" data-v="1" data-i="sp1">Silly</button>
+            <button type="button" data-v="2" data-i="sp2">Unhinged</button>
+          </div>
+          <span class="note" data-i="spN">Unhinged is still clean. Just weirder.</span>
+        </div>
+        <div class="toggle">
+          <div><b data-i="voice">Read replies aloud</b><div class="note" data-i="voiceN">Each mode gets its own voice pitch, in your language.</div></div>
+          <button class="switch" id="voiceSw" role="switch" aria-checked="false" aria-label="Read replies aloud"></button>
+        </div>
+        <div class="toggle">
+          <div><b data-i="sound">Arcade sounds</b><div class="note" data-i="soundN">Dings, blips and a tiny fanfare.</div></div>
+          <button class="switch" id="soundSw" role="switch" aria-checked="true" aria-label="Arcade sounds"></button>
+        </div>
+      </div>
+
+      <div class="panel" id="customPanel">
+        <span class="label" data-i="custom">Create your own character</span>
+        <div class="row2">
+          <div class="field"><label class="label" for="cEmoji" data-i="cEmoji">Emoji</label><input id="cEmoji" maxlength="4" placeholder="🦖"></div>
+          <div class="field"><label class="label" for="cName" data-i="cName">Name</label><input id="cName" maxlength="24" placeholder="Dino Chef"></div>
+        </div>
+        <div class="field"><label class="label" for="cDesc" data-i="cDesc">Personality</label><textarea id="cDesc" maxlength="240" placeholder="A dramatic dinosaur chef who turns every answer into a recipe."></textarea></div>
+        <div class="field"><label class="label" for="cCatch" data-i="cCatch">Catchphrase</label><input id="cCatch" maxlength="40" placeholder="Rawr, let me cook!"></div>
+        <div class="btn-row"><button class="btn" id="cSave" type="button" data-i="cSave">Save character</button><button class="btn ghost" id="cDel" type="button" data-i="cDel">Delete</button></div>
+        <span class="note" data-i="cNote">Your character appears in the mode strip. With the AI brain it fully plays the role.</span>
+      </div>
+
+      <div class="panel">
+        <span class="label" data-i="brain">AI brain</span>
+        <div class="note" id="brainNote" data-i="brainN">Spark is the built-in offline brain: instant, no download, works on any phone. Load a real AI model for free-flowing chat in any language.</div>
+        <div class="field">
+          <label class="label" for="modelSel" data-i="model">Model</label>
+          <select id="modelSel">
+            <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Lite · Qwen 2.5 0.5B (~400 MB)</option>
+            <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC">Fun · Llama 3.2 1B (~700 MB)</option>
+            <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC" selected>Multilingual · Qwen 2.5 1.5B (~1 GB)</option>
+            <option value="gemma-2-2b-it-q4f16_1-MLC">Witty · Gemma 2 2B (~1.4 GB)</option>
+            <option value="Qwen2.5-3B-Instruct-q4f16_1-MLC">Best languages · Qwen 2.5 3B (~1.9 GB)</option>
+            <option value="Phi-3.5-mini-instruct-q4f16_1-MLC">Smart · Phi 3.5 mini (~2.2 GB)</option>
+          </select>
+        </div>
+        <div class="bar" aria-hidden="true"><i id="brainBar"></i></div>
+        <div class="note" id="brainProg">—</div>
+        <div class="btn-row">
+          <button class="btn" id="loadBrain" type="button" data-i="load">Load AI brain</button>
+          <button class="btn ghost" id="useSpark" type="button" data-i="spark">Use Spark</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <span class="label" data-i="mem">What the Oracle remembers</span>
+        <div class="list" id="memList"></div>
+        <div class="btn-row"><button class="btn ghost small" id="memClear" type="button" data-i="memClear">Forget all</button></div>
+      </div>
+
+      <div class="panel">
+        <span class="label" data-i="favs">Favorite replies</span>
+        <div class="list" id="favList"></div>
+      </div>
+
+      <div class="panel">
+        <span class="label" data-i="stats">Your joy stats</span>
+        <div class="stats" id="stats"></div>
+        <span class="label" data-i="badges">Badges</span>
+        <div class="badges" id="badges"></div>
+        <div class="btn-row">
+          <button class="btn ghost small" id="copyChat" type="button" data-i="copy">Copy chat</button>
+          <button class="btn ghost small" id="resetBtn" type="button" data-i="clear">Clear chat</button>
+        </div>
+      </div>
+    </section>
+    <section class="view" id="view-future" hidden>
+      <h2 data-i="fTitle">Crystal Ball</h2>
+      <p class="sub" data-i="fSub">Ask about your future. The Oracle gazes, predicts, and tells you what to do next.</p>
+      <div class="panel">
+        <div class="orb" id="orb" aria-hidden="true"><span id="orbText"></span></div><div class="orb-stand" aria-hidden="true"></div>
+        <span class="label" data-i="fTopic">Topic</span><div class="chips" id="fTopics"></div>
+        <span class="label" data-i="fWhen">When</span><div class="chips" id="fTimes"></div>
+        <div class="field"><label class="label" for="fQ" data-i="fQL">Your question (optional)</label><input id="fQ" maxlength="120" data-ip="fQP" placeholder="Will my business take off?"></div>
+        <button class="btn" id="fGo" type="button" data-i="fGo">Gaze into the future</button>
+        <div id="fOut"></div>
+      </div>
+      <div class="panel">
+        <span class="label" data-i="hTitle">Daily horoscope</span>
+        <div class="row2 wide">
+          <div class="field"><label class="label" for="hSign" data-i="hSign">Your sign</label><select id="hSign"></select></div>
+          <div class="field"><label class="label" for="hYear" data-i="hYear">Birth year (optional)</label><input id="hYear" inputmode="numeric" maxlength="4" placeholder="1995"></div>
+        </div>
+        <button class="btn ghost" id="hGo" type="button" data-i="hGo">Read my stars</button>
+        <div id="hOut"></div>
+      </div>
+      <div class="panel">
+        <span class="label" data-i="dTitle">Destiny cards</span>
+        <div class="tcards" id="tcards"></div>
+        <button class="btn ghost" id="dGo" type="button" data-i="dGo">Draw 3 cards</button>
+        <div id="dOut" class="note"></div>
+      </div>
+      <div class="panel">
+        <span class="label" data-i="yTitle">Message from future you</span>
+        <button class="btn ghost" id="yGo" type="button" data-i="yGo">Receive message</button>
+        <div id="yOut"></div>
+      </div>
+      <div class="panel">
+        <span class="label" data-i="cTitle">Time capsule</span>
+        <textarea id="capText" maxlength="400" data-ip="cP" placeholder="Write a message or prediction for your future self…"></textarea>
+        <div class="row2 wide">
+          <div class="field"><label class="label" for="capWhen" data-i="cOpen">Opens in</label><select id="capWhen"></select></div>
+          <div class="field" style="justify-content:flex-end"><button class="btn" id="capSave" type="button" data-i="cSave">Seal capsule</button></div>
+        </div>
+        <div class="list" id="capList"></div>
+      </div>
+      <p class="note" data-i="fDisc">Just for fun. The future isn't written yet: you hold the pen.</p>
+    </section>
+
+    <section class="view" id="view-learn" hidden>
+      <h2 data-i="lTitle">Lingo Lab</h2>
+      <p class="sub" data-i="lSub">Learn any language from zero to fluent: lessons, listening, speaking practice, flashcards and an AI tutor.</p>
+      <div class="panel">
+        <div class="field"><label class="label" for="lTarget" data-i="lTarget">I want to learn</label><select id="lTarget"></select></div>
+        <span class="note" id="lNote"></span>
+      </div>
+      <div class="stats" id="lStats"></div>
+      <div class="btn-row" id="lTools" style="margin-top:10px"></div>
+      <div id="learnMain"></div>
+    </section>
+  </main>
+
+  <div class="composer pad" id="composer">
+    <button class="icon-btn" id="stageBtn" type="button" aria-label="Show or hide the stage">🎭</button>
+    <button class="icon-btn" id="talkBtn" type="button" aria-label="Hands-free talk mode">🗣️</button>
+    <button class="icon-btn" id="micBtn" type="button" aria-label="Speak your message" hidden>🎙️</button>
+    <textarea id="input" rows="1" data-ip="ph" placeholder="Ask, wish, or just say hi…" aria-label="Message"></textarea>
+    <button class="icon-btn send" id="sendBtn" type="button" data-i="send">SEND</button>
+  </div>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-v="chat" aria-selected="true"><span class="em">💬</span><span data-i="tChat">Chat</span></button>
+    <button class="tab" role="tab" data-v="games" aria-selected="false"><span class="em">🕹️</span><span data-i="tGames">Games</span></button>
+    <button class="tab" role="tab" data-v="future" aria-selected="false"><span class="em">🔮</span><span data-i="tFuture">Future</span></button>
+    <button class="tab" role="tab" data-v="learn" aria-selected="false"><span class="em">🎓</span><span data-i="tLearn">Learn</span></button>
+    <button class="tab" role="tab" data-v="wish" aria-selected="false"><span class="em">🪙</span><span data-i="tWish">Wish</span></button>
+    <button class="tab" role="tab" data-v="me" aria-selected="false"><span class="em">⚙️</span><span data-i="tMe">Me</span></button>
+  </nav>
+</div>
+<canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+
