@@ -6,10 +6,10 @@
 <title>Funhouse Oracle</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#0d2420">
+<meta name="theme-color" content="#100c22">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Atkinson+Hyperlegible:wght@400;700&family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Atkinson+Hyperlegible:wght@400;700&family=DM+Mono:wght@400;500&family=Outfit:wght@600;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
 <style>
 /* Layout: an arcade fortune-machine cabinet — marquee header with a living mascot, mode dial strip, one scrolling stage, bottom ticket-slot tab bar */
 :root{
@@ -378,6 +378,71 @@ input[type="range"]{width:100%;accent-color:var(--brass)}
 .co-radar{display:flex;justify-content:center;margin:6px 0}.co-slider{display:grid;grid-template-columns:150px 1fr 26px;gap:8px;align-items:center;margin:6px 0;font-size:14px}
 .co-topic{font-size:18px;font-weight:700;text-align:center;margin:8px 0}.co-goal.done{opacity:.7}.co-goal .ac-bar{display:block;margin:6px 0}
 .hb-box h2{text-align:left}
+/* ===== v12 premium theme: midnight glass, rose-violet accents ===== */
+:root{
+  --felt:#100c22;--felt-2:#1b1638;--felt-3:#262050;
+  --brass:#ff9ecf;--brass-dim:#b27ab8;--cherry:#ff5c8a;--ticket:#fff4fa;--ink:#2a0f2e;--mint:#7af0c8;
+  --text:#f6f2ff;--muted:#b9b2db;--line:rgba(255,255,255,.12);
+  --grad:linear-gradient(135deg,#ff8fc6 0%,#b48cff 55%,#7cc8ff 100%);
+  --glass:rgba(255,255,255,.06);--glass-2:rgba(255,255,255,.1);
+  --f-display:"Outfit","Plus Jakarta Sans",system-ui,sans-serif;
+  --f-body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI","Noto Sans",sans-serif;
+}
+body{background:#100c22;background-image:radial-gradient(1200px 600px at 10% -10%,rgba(255,143,198,.18),transparent 60%),radial-gradient(900px 600px at 110% 10%,rgba(124,200,255,.14),transparent 55%),radial-gradient(800px 800px at 50% 120%,rgba(180,140,255,.18),transparent 60%);background-attachment:fixed}
+body::before{background:#100c22}
+.marquee{padding-block:10px 6px}
+.marquee-inner{border:1px solid var(--line);border-radius:22px;background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.02));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:8px 12px}
+.bulbs{display:none}
+.logo{font-family:var(--f-display);font-weight:800;letter-spacing:.2px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;font-size:clamp(19px,5.4vw,25px)}
+.logo small{font-family:var(--f-body);letter-spacing:.2px;text-transform:none;font-size:12px;color:var(--muted);-webkit-text-fill-color:var(--muted)}
+.hchip{border:1px solid var(--line);background:var(--glass);font-family:var(--f-body);font-weight:600;font-size:12px;padding:5px 10px}
+.modes{gap:8px}
+.mode{border:1px solid var(--line);background:var(--glass);border-radius:999px;padding:7px 14px;font-size:14px;font-weight:600;transition:transform .15s}
+.mode .em{font-size:17px}
+.mode[aria-pressed="true"]{background:var(--grad);color:#24102f;border-color:transparent;box-shadow:0 6px 18px rgba(255,143,198,.35)}
+.mode-line{font-family:var(--f-body);font-size:12.5px}
+#stageWrap #stageBox,.stage-box{border-radius:24px!important;box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.08)!important;border-color:transparent!important}
+.stage-tools{right:8px;top:8px;gap:6px}
+.stage-tools button{flex:0 0 32px;width:32px;height:32px;font-size:14px;background:rgba(16,12,34,.55);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.stage-tools button.on{background:var(--grad);color:#24102f;border-color:transparent}
+.panel,.ac-level,.ac-tile,.ac-opt,.sheet-item,.dy-mood,.qs-i,.tl-topic,.ai-opt{background:var(--glass)!important;border:1px solid var(--line)!important;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.panel{border-radius:20px!important;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.ac-tile{border-radius:18px!important;transition:transform .15s,box-shadow .15s}.ac-tile:active,.qs-i:active,.tl-topic:active{transform:scale(.97)}
+.ac-tile.hot,.qs-i.hot{background:linear-gradient(135deg,rgba(255,143,198,.28),rgba(180,140,255,.22))!important;border-color:rgba(255,158,207,.6)!important}
+.btn{background:var(--grad);color:#24102f;border:0;font-weight:700;border-radius:14px;box-shadow:0 6px 18px rgba(180,140,255,.28)}
+.btn.ghost{background:var(--glass);color:var(--text);border:1px solid var(--line);box-shadow:none}
+.wchip{background:var(--glass);border:1px solid var(--line);font-family:var(--f-body)}.wchip.on{background:var(--grad);color:#24102f;border-color:transparent}
+.seg{background:rgba(255,255,255,.05);border:1px solid var(--line)}.seg button{font-family:var(--f-body)}.seg button.on{background:var(--grad);color:#24102f}
+.bubble{background:var(--glass-2);border:1px solid var(--line);border-radius:20px 20px 20px 6px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.msg.me .bubble{background:var(--grad);color:#24102f;border:0;border-radius:20px 20px 6px 20px}
+.avatar{border:2px solid transparent;background:linear-gradient(var(--felt-3),var(--felt-3)) padding-box,var(--grad) border-box}
+.chip{border:1px solid var(--line);background:var(--glass);color:var(--text);font-weight:600}.chip:hover{border-color:var(--brass)}
+.composer{background:rgba(16,12,34,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line)}
+.composer textarea{background:var(--glass);border:1px solid var(--line);border-radius:18px}
+.icon-btn{background:var(--glass);border:1px solid var(--line);border-radius:14px}
+.send{background:var(--grad)!important;color:#24102f!important;border:0!important;font-family:var(--f-display)!important;font-weight:800;font-size:13px!important}
+.tabs{grid-template-columns:repeat(5,1fr)!important;border-top:1px solid var(--line)!important;background:rgba(16,12,34,.9)!important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.tabs .tab[hidden]{display:none!important}
+.tab{font-family:var(--f-body)!important;font-weight:700;font-size:11px!important;letter-spacing:.2px!important;text-transform:none!important;padding:8px 2px 9px!important;position:relative}
+.tab .em{font-size:21px;transition:transform .2s}
+.tab[aria-selected="true"]{color:var(--text)!important}.tab[aria-selected="true"] .em{transform:translateY(-2px) scale(1.12)}
+.tab[aria-selected="true"]::after{content:"";position:absolute;bottom:3px;left:50%;width:22px;height:3px;border-radius:3px;transform:translateX(-50%);background:var(--grad)}
+h2{font-family:var(--f-display);font-weight:800;letter-spacing:.2px}
+.label{font-family:var(--f-body)!important;font-weight:800;letter-spacing:1px}
+.cbar{background:transparent}
+.qs{display:flex;gap:8px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}.qs::-webkit-scrollbar{display:none}
+.qs-i{flex:0 0 auto;display:flex;align-items:center;gap:6px;border-radius:999px;padding:8px 14px;color:var(--text);font:700 13.5px var(--f-body);white-space:nowrap}.qs-i .em{font-size:17px}
+.tl-ask{display:flex;flex-direction:column;gap:6px}.tl-cat{display:block;margin:16px 0 6px}
+.tl-row{display:flex;flex-wrap:wrap;gap:8px}.tl-topic{border-radius:14px;padding:10px 13px;color:var(--text);font:600 14px var(--f-body);text-align:left}
+.ai-opt{display:flex;flex-direction:column;gap:3px;text-align:left;width:100%;border-radius:16px;padding:14px;margin:8px 0;color:var(--text);font:inherit}.ai-opt small{color:var(--muted)}.ai-opt:disabled{opacity:.45}
+.hf-tg.on{background:var(--grad)!important;color:#24102f!important}
+.play-seg{margin-bottom:12px}
+.hb-box,.ward-drawer{background:linear-gradient(180deg,#221b45,#151132)!important;border-top:1px solid rgba(255,158,207,.5)!important}
+.ac-badge{background:var(--grad);color:#24102f}.ac-lvtag{background:linear-gradient(135deg,#ff5c8a,#b48cff)}
+.ac-bar i,.ac-prog i{background:var(--grad)}
+.sound-pill{background:var(--grad)!important;color:#24102f!important}
+.ac-fb.ok{background:linear-gradient(135deg,#1f8f63,#2fbf8f)}.ac-fb.bad{background:linear-gradient(135deg,#a3324f,#c2475f)}
+::selection{background:#b48cff55}
 </style>
 </head>
 <body>
@@ -2785,7 +2850,7 @@ async function init3d(){
   if(E.ready)return true;if(E.loading)return false;E.loading=true;
   const box=$("#stageBox");let ov=$("#s3dLoad");if(!ov){ov=h("div",{id:"s3dLoad",class:"s3d-load"});box.append(ov)}ov.hidden=false;ov.textContent=T("s3dLoad");
   try{
-    E.step="engine";if(!window.FHO3D)await new Promise((ok,bad)=>{const sc=document.createElement("script");sc.src="three-3d.js";sc.onload=ok;sc.onerror=()=>bad(new Error("three-3d.js did not load"));document.head.append(sc)});
+    E.step="engine";if(!window.FHO3D)await new Promise((ok,bad)=>{const sc=document.createElement("script");sc.src="three-3d.js?v=12";sc.onload=ok;sc.onerror=()=>bad(new Error("three-3d.js did not load"));document.head.append(sc)});
     const THREE=window.FHO3D.THREE;E.T=THREE;E.GLTFLoader=window.FHO3D.GLTFLoader;
     E.step="webgl";{const t=document.createElement("canvas");if(!(t.getContext("webgl2")||t.getContext("webgl")))throw new Error("WebGL is turned off on this device");}
     const cv=document.createElement("canvas");cv.className="s3d-canvas";box.prepend(cv);E.canvas=cv;
@@ -5099,6 +5164,115 @@ function openWeekly(){const {b,close}=modal("🗓️ "+TT("co_week"));const f=["
   CO.weekly.slice(0,3).forEach(r=>b.append(h("div",{class:"dy-j"},h("small",null,r.d),h("span",null,"🏆 "+(r.w[0]||"—")+" · 🎯 "+(r.w[3]||"—")))))}
 /* Sunday nudge for the weekly review */
 setTimeout(()=>{if(new Date().getDay()===0&&(!CO.weekly[0]||CO.weekly[0].d!==dayKey())&&!store.get("wkNudge_"+dayKey(),false)){store.set("wkNudge_"+dayKey(),true);toast("🗓️ "+TT("co_week")+"?")}},6000);
+
+/* ================= v12: Talk & Learn, anime girls, premium navigation ================= */
+const UI16={
+ en:{tl_title:"Talk & Learn",tl_sub:"Your personal teacher for anything: speak, listen and learn from beginner to advanced.",tl_any:"Any topic",tl_ask:"What do you want to learn today?",tl_askPh:"e.g. how the stock market works, guitar chords, Python…",tl_go:"Start class",tl_lv:["Beginner","Intermediate","Advanced"],tl_hf:"🎙️ Voice class (hands-free talk)",tl_needAI:"Teaching any topic needs an AI brain. Turn on a free one with one tap:",
+  ai_title:"Turn on free AI",ai_device:"⚡ Free AI on this device",ai_deviceD:"Private, works offline after one download ({s}).",ai_chrome:"🌐 Chrome built-in AI",ai_chromeD:"Free, already on your computer (desktop Chrome).",ai_cloud:"🔑 Free cloud key (fastest on phones)",ai_cloudD:"Get a free key from Groq or Google in 1 minute.",ai_ready:"AI is on! Let's go.",ai_wait:"Downloading… you can keep using the app.",ai_noGpu:"This browser can't run AI on the device. Use the free cloud key option instead.",ai_preview:"Inside the Claude preview the AI download is blocked. Open your own site (keng89.github.io) to use it.",
+  qs_learn:"Learn anything",qs_en:"English class",qs_talk:"Just talk",qs_coach:"Coach me",qs_play:"Play",tPlay:"Play",pl_games:"Games",pl_future:"Fortune",pl_wish:"Wishes",tm_mode:["Teacher","Teaches you anything, step by step."],
+  ac_hf:"Hands-free",ac_hfOn:"Hands-free on: I'll talk you through it. Just answer out loud."},
+ vi:{tl_title:"Nói & Học",tl_sub:"Giáo viên riêng cho mọi chủ đề: nói, nghe và học từ cơ bản đến nâng cao.",tl_any:"Mọi chủ đề",tl_ask:"Hôm nay bạn muốn học gì?",tl_askPh:"vd: thị trường chứng khoán, hợp âm guitar, Python…",tl_go:"Bắt đầu học",tl_lv:["Cơ bản","Trung cấp","Nâng cao"],tl_hf:"🎙️ Lớp học bằng giọng nói (rảnh tay)",tl_needAI:"Dạy mọi chủ đề cần bộ não AI. Bật miễn phí chỉ với một chạm:",
+  ai_title:"Bật AI miễn phí",ai_device:"⚡ AI miễn phí trên máy này",ai_deviceD:"Riêng tư, chạy ngoại tuyến sau một lần tải ({s}).",ai_chrome:"🌐 AI có sẵn trong Chrome",ai_chromeD:"Miễn phí, có sẵn trên máy tính (Chrome máy tính).",ai_cloud:"🔑 Khoá miễn phí trên mây (nhanh nhất trên điện thoại)",ai_cloudD:"Lấy khoá miễn phí từ Groq hoặc Google trong 1 phút.",ai_ready:"AI đã bật! Bắt đầu nào.",ai_wait:"Đang tải… bạn vẫn dùng app bình thường.",ai_noGpu:"Trình duyệt này không chạy được AI trên máy. Hãy dùng khoá miễn phí trên mây.",ai_preview:"Trong bản xem trước của Claude không tải được AI. Hãy mở trang riêng (keng89.github.io).",
+  qs_learn:"Học mọi thứ",qs_en:"Lớp tiếng Anh",qs_talk:"Tâm sự",qs_coach:"Huấn luyện",qs_play:"Giải trí",tPlay:"Giải trí",pl_games:"Trò chơi",pl_future:"Tương lai",pl_wish:"Điều ước",tm_mode:["Giáo viên","Dạy bạn mọi thứ, từng bước."],ac_hf:"Rảnh tay",ac_hfOn:"Đã bật rảnh tay: mình sẽ dẫn dắt, bạn chỉ cần trả lời to."},
+ yue:{tl_title:"講嘢學嘢",tl_any:"任何題目",tl_go:"開始上堂",qs_learn:"學任何嘢",qs_en:"英文堂",qs_talk:"傾偈",qs_coach:"教練",qs_play:"玩",tPlay:"玩",tm_mode:["老師","一步步教你任何嘢。"]}};
+for(const k of ["en","vi","yue"]){Object.assign(PACKS[k].ui,UI16[k]);if(UI16[k].tm_mode)PACKS[k].modes.teacher=UI16[k].tm_mode}
+{const all=Object.entries(MODES);for(const [k] of all)delete MODES[k];for(const [k,v] of all){MODES[k]=v;if(k==="coach")MODES.teacher={em:"🎓",pitch:1,rate:.96,sys:"You are an inspiring teacher.",open:["","","",""],wrap:t=>t}}renderModes();}
+/* ---------- 1. reliable loading after updates ---------- */
+/* ---------- 2. anime girls (recoloured from Aiko) ---------- */
+VRM_BUILTIN.length=0;
+[["aiko","Aiko",null],["yuna","Yuna",{hair:"#ff9ccf",top:"#f6c6e0",bottom:"#ffffff",eyes:"#c45cc0"}],["mika","Mika",{hair:"#f7d77a",top:"#9fd3ff",bottom:"#24365c",eyes:"#3f8be0"}],
+ ["sora","Sora",{hair:"#b8d8ff",top:"#ffffff",bottom:"#5b7fd6",eyes:"#2bb3c9"}],["rin","Rin",{hair:"#2a2430",top:"#d6283f",bottom:"#1c1c22",eyes:"#b3203a"}],
+ ["hana","Hana",{hair:"#c4512e",top:"#7fcf8e",bottom:"#efe2c8",eyes:"#3e9c55"}],["luna","Luna",{hair:"#c7a6ff",top:"#7b55d6",bottom:"#1d1830",eyes:"#e0b23d"}],["nami","Nami",{hair:"#7fe0cf",top:"#fff1a8",bottom:"#2e8c86",eyes:"#1fa58f"}]]
+ .forEach(([id,name,c])=>VRM_BUILTIN.push({id,name,path:"vrm/aiko/",g:"f",age:"adult",thumb:"vrm/"+id+".jpg",colors:c}));
+function tintTex(tex,hex,gamma){try{const img=tex.image;const w=img.width,h0=img.height;const cv=document.createElement("canvas");cv.width=w;cv.height=h0;const x=cv.getContext("2d");x.drawImage(img,0,0);
+  const d=x.getImageData(0,0,w,h0),p=d.data;let sum=0,n=0;for(let i=0;i<p.length;i+=16){if(p[i+3]>128){sum+=(p[i]*.299+p[i+1]*.587+p[i+2]*.114);n++}}const mean=Math.max(20,n?sum/n:128);
+  const c=new E.T.Color(hex);const r=c.r*255,g=c.g*255,b=c.b*255;
+  for(let i=0;i<p.length;i+=4){const l=(p[i]*.299+p[i+1]*.587+p[i+2]*.114)/mean;const k=Math.pow(Math.max(0,l),gamma||.85);p[i]=Math.min(255,r*k);p[i+1]=Math.min(255,g*k);p[i+2]=Math.min(255,b*k)}
+  x.putImageData(d,0,0);const t=new E.T.CanvasTexture(cv);t.flipY=tex.flipY;t.colorSpace=tex.colorSpace;t.wrapS=tex.wrapS;t.wrapT=tex.wrapT;t.needsUpdate=true;return t}catch(e){return null}}
+function vrmRecolor(vrm,c){if(!c)return;const done=new Map();vrm.scene.traverse(o=>{if(!o.isMesh)return;[].concat(o.material).forEach(m=>{const nm=m.name||"";let hex=null,g=.85;
+  if(/HAIR/i.test(nm))hex=c.hair;else if(/Tops/i.test(nm))hex=c.top;else if(/Bottoms|Shoes/i.test(nm))hex=/Shoes/.test(nm)?c.bottom:c.bottom;else if(/EyeIris/i.test(nm)){hex=c.eyes;g=1}
+  if(!hex||!m.map)return;const key=m.map.uuid+hex;let t=done.get(key);if(!t){t=tintTex(m.map,hex,g);done.set(key,t)}if(!t)return;m.map=t;if(m.shadeMultiplyTexture)m.shadeMultiplyTexture=t;m.needsUpdate=true})})}
+{const _lvf=loadVRMFrom;loadVRMFrom=async function(meta,buf,path){const ok=await _lvf(meta,buf,path);if(ok&&E.vrm&&meta.colors)vrmRecolor(E.vrm,meta.colors);return ok};}
+vrmFile.removeAttribute("accept");
+/* ---------- 3. one-tap AI setup ---------- */
+function aiSetup(onReady){if(S.brainOn){onReady&&onReady();return}
+  const m=h("div",{class:"hb-modal",role:"dialog"});const b=h("div",{class:"hb-box"});m.append(b);document.body.append(m);m.onclick=e=>{if(e.target===m)m.remove()};
+  const prog=h("p",{class:"note"});let poll=0;const finish=()=>{clearInterval(poll);if(S.brainOn){toast(TT("ai_ready"));m.remove();onReady&&onReady()}};
+  const watch=()=>{poll=setInterval(()=>{const p=$("#brainProg");prog.textContent=(p&&p.textContent&&p.textContent!=="—"?p.textContent:TT("ai_wait"));if(S.brainOn)finish()},500)};
+  b.append(h("div",{class:"ward-head"},h("b",null,"🧠 "+TT("ai_title")),h("button",{type:"button",class:"btn ghost small",onclick:()=>{clearInterval(poll);m.remove()}},"✕")));
+  if(inClaude)b.append(h("p",{class:"note",style:"color:#ffb4c8"},TT("ai_preview")));
+  const opt=(t,d,fn,dis)=>h("button",{type:"button",class:"ai-opt",disabled:!!dis,onclick:fn},h("b",null,t),h("small",null,d));
+  bestModel().then(best=>{const mm=WEBM.find(x=>x[0]===best);
+    b.append(opt(TT("ai_device"),best?fill(TT("ai_deviceD"),{s:(mm?mm[1]+", "+mm[3]:"")}):TT("ai_noGpu"),()=>{BC.kind="web";BC.web=best;saveBC();$("#brainKind").value="web";$("#modelSel").value=best;loadBrain();watch()},!best),
+      hasChromeAI?opt(TT("ai_chrome"),TT("ai_chromeD"),()=>{$("#brainKind").value="chrome";loadBrain();watch()}):"",
+      opt(TT("ai_cloud"),TT("ai_cloudD"),()=>{m.remove();BC.kind="cloud";BC.cprov="groq";saveBC();$("#brainKind").value="cloud";$("#brainKind").dispatchEvent(new Event("change"));$("#cProv").value="groq";$("#cProv").dispatchEvent(new Event("change"));switchTab("me");setTimeout(()=>{$("#cKey").scrollIntoView({block:"center"});$("#cKey").focus()},200)}),prog)});
+}
+/* ---------- 4. Talk & Learn: teacher for any topic ---------- */
+const TOPICS=[["🗣️","Languages",["English conversation","Business English","Spanish","French","Mandarin Chinese","Japanese","Korean","Vietnamese"]],
+ ["💰","Money",["Budgeting basics","Saving and emergency funds","Investing for beginners","Stocks and ETFs","Credit scores","Taxes basics (Canada and US)","Crypto explained","Real estate basics"]],
+ ["🤖","Tech & AI",["How AI works","Using AI tools well","Python coding","Excel and spreadsheets","Building websites (HTML/CSS)","Cybersecurity and scams","Social media marketing"]],
+ ["💼","Career & business",["Job interviews","Resume and LinkedIn","Starting a business","Marketing basics","Sales and negotiation","Public speaking","Leadership","Productivity"]],
+ ["🔬","Science",["The human body","Space and planets","Climate and weather","Physics in daily life","Chemistry basics","Biology and evolution","Psychology basics"]],
+ ["🏛️","History & world",["World history highlights","Ancient civilizations","World War II","Vietnamese history","Canadian history","US history","Cultures of the world"]],
+ ["❤️","Health & life",["Nutrition","Fitness basics","Sleep science","Stress and mindfulness","First aid basics","Cooking basics","Parenting","Relationships and communication"]],
+ ["🎨","Creative",["Music theory","Guitar basics","Drawing","Photography","Creative writing","Film and storytelling"]],
+ ["➗","School & exams",["Math: arithmetic to algebra","Geometry","Statistics","Study skills","IELTS speaking","Homework help (kids)"]]];
+let TL=Object.assign({lv:0,hf:true},store.get("tl",{}));const saveTL=()=>store.set("tl",TL);
+function startClass(topic,lv){topic=String(topic||"").trim();if(!topic)return;
+  aiSetup(()=>{S.tutor={teach:true,topic,lv:lv??TL.lv,lang:replyLang()};S.mode="teacher";store.set("mode","teacher");renderModes();
+    CMP.newChat("tutor","🎓 "+topic);switchTab("chat");if(!S.stageOn)$("#stageBtn").click();
+    if(TL.hf&&(window.SpeechRecognition||window.webkitSpeechRecognition)&&!S.talk)setTalk(true);
+    S.history.push({role:"user",content:"Let's start."});const b2=addMsg("bot","");S.busy=true;mascot("talk");
+    aiReply(b2).then(out=>{b2.textContent=out||"…";S.history.push({role:"assistant",content:out});speak(out,true);setChips()}).finally(()=>{S.busy=false})})}
+{const _tp2=tutorPrompt;tutorPrompt=function(){const t=S.tutor;if(!t||!t.teach)return _tp2();const c=E&&E.on?((typeof vrmChar==="function"&&vrmChar())||cur3d()):curChar();const lv=["a complete beginner","an intermediate learner","an advanced learner"][t.lv||0];
+  return "You are "+c.name+", a brilliant, warm and funny teacher. Your words are spoken aloud, so talk like a real person: no markdown, no lists, no emojis. Topic: "+t.topic+". The learner is "+lv+(S.name?", named "+S.name:"")+". "+
+   "Teach in small spoken steps: explain ONE idea in 2 to 4 short sentences with a vivid real-life example or analogy, then ask ONE short question to check understanding or to let them try. When they answer, react naturally, praise what is right, gently correct what is wrong, then move to the next idea. Start by greeting them and asking what they already know or why they want to learn this. Every 5 steps, give a one-sentence recap. If they say 'quiz me', ask 3 questions one at a time. If they ask something off-topic, answer briefly and come back. "+langLine()+memBlock()};}
+{const _sp4=sysPrompt;sysPrompt=function(){if(!S.tutor&&S.mode==="teacher")return "You are an inspiring, friendly teacher who can teach anything from beginner to advanced. Ask the learner what they want to learn today and their level, then teach in short spoken steps with examples and one question at a time. No markdown or lists. "+langLine()+memBlock();return _sp4()};}
+{const _spk3=sparkReply;sparkReply=function(raw){if(S.mode==="teacher"&&!S.game&&!S.tutor){setTimeout(()=>{switchTab("learn");ACD.mode="topics";saveACD();renderLearn()},1600);return replyLang()==="vi"?"Mình có thể dạy bạn mọi chủ đề! Hãy chọn một chủ đề trong thư viện, mình sẽ bật AI miễn phí để giảng bài bằng giọng nói nhé.":"I can teach you anything! Pick a topic in the library and I'll switch on a free AI brain so I can teach you out loud, step by step."}return _spk3(raw)};}
+function renderTopics(A){A.innerHTML="";const nm=S.name?", "+S.name:"";
+  A.append(h("div",{class:"ac-hero"},h("div",null,h("h2",null,"🧠 "+TT("tl_title")),h("p",{class:"sub"},TT("tl_sub")))));
+  const inp=h("input",{class:"ac-input",placeholder:TT("tl_askPh"),"aria-label":TT("tl_ask")});inp.onkeydown=e=>{if(e.key==="Enter")startClass(inp.value)};
+  const lvRow=h("div",{class:"hb-gsel"},...TT("tl_lv").map((l,i)=>h("button",{type:"button",class:"wchip"+(TL.lv===i?" on":""),onclick:()=>{TL.lv=i;saveTL();renderTopics(A)}},l)));
+  const hf=h("label",{class:"note",style:"display:flex;gap:8px;align-items:center;margin-top:8px"},h("input",{type:"checkbox",checked:TL.hf,onchange:e=>{TL.hf=e.target.checked;saveTL()}}),TT("tl_hf"));
+  A.append(h("div",{class:"panel tl-ask"},h("b",null,TT("tl_ask")),inp,lvRow,hf,h("button",{type:"button",class:"btn ac-check",onclick:()=>startClass(inp.value)},"🎓 "+TT("tl_go"))));
+  if(!S.brainOn)A.append(h("div",{class:"panel"},h("p",{class:"note"},TT("tl_needAI")),h("button",{type:"button",class:"btn",onclick:()=>aiSetup(()=>renderTopics(A))},"⚡ "+TT("ai_title"))));
+  TOPICS.forEach(([em,cat,list])=>{A.append(h("span",{class:"label tl-cat"},em+" "+cat));A.append(h("div",{class:"tl-row"},...list.map(t=>h("button",{type:"button",class:"tl-topic",onclick:()=>startClass(t)},t))))})}
+/* Learn tab: third segment */
+{const _rl2=renderLearn;renderLearn=function(){_rl2();const seg=$("#learnSeg");if(seg&&!$("#segTopics")){seg.prepend(h("button",{type:"button",id:"segTopics",onclick:()=>{ACD.mode="topics";saveACD();renderLearn()}},"🧠 "+TT("tl_any")))}
+  const st=$("#segTopics");if(st){st.textContent="🧠 "+TT("tl_any");st.classList.toggle("on",ACD.mode==="topics")}
+  if(ACD.mode==="topics"){$("#segEn").classList.remove("on");$("#segOther").classList.remove("on");showLingo(false);$("#segEn").classList.remove("on");renderTopics($("#acad"))}};}
+/* ---------- 5. hands-free English lessons ---------- */
+ACD.hf=ACD.hf!==false;
+{const _ra=renderAcad;renderAcad=function(){_ra();if(ACV.view!=="lesson"||!ACV.les)return;const A=$("#acad");const head=A.querySelector(".ac-lhead");
+  if(head&&!head.querySelector(".hf-tg"))head.append(h("button",{type:"button",class:"btn ghost small hf-tg"+(ACD.hf?" on":""),title:TT("ac_hf"),onclick:()=>{ACD.hf=!ACD.hf;saveACD();if(ACD.hf)toast(TT("ac_hfOn"));renderAcad()}},(ACD.hf?"🎧 ":"🎧 ")+(ACD.hf?"ON":"OFF")));
+  if(!ACD.hf)return;const L2=ACV.les,it=L2.items[L2.i];if(!it||L2.state)return;const key=L2.i+":"+it.t;if(L2.hfKey===key)return;L2.hfKey=key;
+  const SRok=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
+  if(it.t==="intro"){setTimeout(()=>enSay(it.w[0]+". "+it.w[2],()=>setTimeout(()=>{if(ACV.les===L2&&L2.i===+key.split(":")[0]){const b=A.querySelector(".ac-check");b&&b.click()}},700)),150)}
+  else if(it.t==="mc"&&SRok){setTimeout(()=>listenFor("en",alts=>{if(ACV.les!==L2)return;let best=null,bs=0;it.opts.forEach(o=>alts.forEach(a=>{const s=sim(a,o);if(s>bs){bs=s;best=o}}));
+      const btn=[...A.querySelectorAll(".ac-opt")].find(x=>x.textContent===best);if(btn&&bs>.55)btn.click()}),1800)}
+  else if((it.t==="speak"||it.t==="role")&&SRok){setTimeout(()=>{const mic=A.querySelector(".ac-mic");if(mic&&ACV.les===L2)mic.click()},it.t==="role"?2200:1600)}};}
+/* auto-continue after correct answers in hands-free mode */
+new MutationObserver(()=>{if(!ACD.hf||ACV.view!=="lesson")return;const fb=document.querySelector("#acad .ac-fb");if(fb&&!fb.dataset.auto){fb.dataset.auto=1;setTimeout(()=>{const b=fb.querySelector(".btn");if(b&&document.body.contains(b))b.click()},fb.classList.contains("ok")?2200:3600)}}).observe(document.body,{childList:true,subtree:true});
+/* ---------- 6. premium navigation: 5 tabs, Play hub, quick start ---------- */
+{const tabs=document.querySelector(".tabs");const byV=v=>tabs.querySelector('[data-v="'+v+'"]');
+ const play=h("button",{class:"tab",role:"tab","data-v":"play","aria-selected":"false"},h("span",{class:"em"},"🎮"),h("span",null,TT("tPlay")));play.onclick=()=>switchTab("games");
+ ["games","future","wish"].forEach(v=>byV(v).hidden=true);
+ [byV("chat"),byV("learn"),byV("today"),play,byV("me")].forEach(t=>tabs.append(t));["games","future","wish"].forEach(v=>tabs.append(byV(v)));
+ const seg=v=>h("div",{class:"seg play-seg"},...[["games","🕹️","pl_games"],["future","🔮","pl_future"],["wish","🪙","pl_wish"]].map(([k,em,lab])=>h("button",{type:"button",class:k===v?"on":"",onclick:()=>switchTab(k)},em+" "+TT(lab))));
+ ["games","future","wish"].forEach(v=>$("#view-"+v).prepend(seg(v)));}
+{const _st3=switchTab;switchTab=function(v){_st3(v);const play=document.querySelector('.tabs [data-v="play"]');if(play)play.setAttribute("aria-selected",["games","future","wish"].includes(v));
+  document.querySelectorAll(".play-seg").forEach(s=>[...s.children].forEach((b,i)=>b.classList.toggle("on",["games","future","wish"][i]===v)))};}
+function quickStart(){let q=$("#quickStart");if(!q){q=h("div",{class:"qs",id:"quickStart"});$("#cbar").after(q)}q.innerHTML="";
+  const it=(em,t,fn,cls)=>h("button",{type:"button",class:"qs-i"+(cls?" "+cls:""),onclick:fn},h("span",{class:"em"},em),h("span",null,t));
+  q.append(it("🧠",TT("qs_learn"),()=>{switchTab("learn");ACD.mode="topics";saveACD();renderLearn()},"hot"),
+    it("🇬🇧",TT("qs_en"),()=>{switchTab("learn");ACD.mode="en";saveACD();renderLearn()}),
+    it("🤝",TT("qs_talk"),()=>{S.mode="friend";store.set("mode","friend");renderModes();CMP.newChat("friend")}),
+    it("🧭",TT("qs_coach"),()=>switchTab("today")),
+    it("🎮",TT("qs_play"),()=>switchTab("games")))}
+{const _bar=CMP.bar.bind(CMP);CMP.bar=function(){_bar();quickStart()};}
+quickStart();
+/* tidy header */
+{const tag=document.querySelector(".logo small");if(tag)tag.textContent=replyLang()==="vi"?"Bạn đồng hành AI · học · vui":"Your AI friend · teacher · coach";}
 
 </script>
 </body>
