@@ -8,3 +8,11 @@ Background panoramas: Poly Haven (HDRI Haven), via pmndrs/drei-assets
   https://polyhaven.com  - License: CC0 (public domain)
 
 3D engine: three.js (MIT) - https://threejs.org
+
+--- Added in v10 ---
+ts-fsrs 5.2.3 (MIT) - Open Spaced Repetition - bundled as fsrs.js
+CEFR-J Wordlist Version 1.5. Compiled by Yukio Tono, Tokyo University of Foreign Studies. http://www.cefr-j.org/ (free for research and commercial use with citation)
+Octanove Vocabulary Profile C1/C2 1.0 - Octanove Labs - CC BY-SA 4.0 (data/en-words.json is shared under CC BY-SA 4.0)
+WordNet 3.0 Copyright 2006 by Princeton University. All rights reserved. (WordNet licence)
+kokoro-js and Kokoro-82M (Apache-2.0) - loaded on demand for the natural offline voice
+English Academy course content: original work for Funhouse Oracle
