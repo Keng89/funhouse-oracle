@@ -39,7 +39,8 @@
 
   <main class="stage pad" id="stage">
     <section class="view" id="view-chat">
-      <div class="chat" id="chat" aria-live="polite"></div>
+      <div class="chat" id="chat"></div>
+      <div id="srLive" class="sr-only" role="status" aria-live="polite"></div>
       <div class="chips" id="chips"></div>
     </section>
 
@@ -242,9 +243,9 @@
   <div id="langHintBar" class="pad" hidden><span id="langHintTxt"></span> <button type="button" id="langHintYes" class="btn small" aria-label="Switch language">✓</button> <button type="button" id="langHintNo" class="btn small ghost" aria-label="Keep current language">✕</button></div>
   <div class="composer pad" id="composer">
     <button class="icon-btn" id="stageBtn" type="button" aria-label="Show or hide the stage">🎭</button>
-    <button class="icon-btn" id="talkBtn" type="button" aria-label="Hands-free talk mode">🗣️</button>
+    <button class="icon-btn" id="talkBtn" type="button" aria-label="Hands-free talk mode" aria-pressed="false">🗣️</button>
     <button class="icon-btn" id="micBtn" type="button" aria-label="Speak your message" hidden>🎙️</button>
-    <textarea id="input" rows="1" data-ip="ph" placeholder="Ask, wish, or just say hi…" aria-label="Message"></textarea>
+    <textarea id="input" rows="1" dir="auto" data-ip="ph" placeholder="Ask, wish, or just say hi…" aria-label="Message"></textarea>
     <button class="icon-btn send" id="sendBtn" type="button" data-i="send">SEND</button>
   </div>
 

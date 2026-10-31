@@ -597,3 +597,10 @@ body:has(#kidLock) .hb-modal{z-index:9700}.kid-lock-box{max-width:380px;text-ali
 body.nomic #micBtn,body.nomic #talkBtn,body.nomic .ac-mic,body.nomic #micHintBar{display:none!important}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
+
+/* ===== v20: screen-reader live region + minimum tap targets (m2, m4) ===== */
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.stage-tools button{flex-basis:40px;width:40px;height:40px}
+.acts button{min-width:40px;min-height:40px}
+#langHintBar .btn{min-height:40px;padding:6px 14px}
+@media (max-width:420px){.composer .icon-btn{flex:0 0 44px;width:44px;height:44px}}

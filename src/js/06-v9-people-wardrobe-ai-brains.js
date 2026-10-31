@@ -405,7 +405,12 @@ const CLOUD={openai:{n:"OpenAI",url:"https://api.openai.com/v1",m:"gpt-6-luna"},
 let BC=Object.assign({kind:"spark",web:"Qwen3.5-2B-q4f16_1-MLC",lurl:"http://localhost:11434/v1",lmodel:"llama3.2",cprov:"gemini",keys:{},cmodel:{},curl:{}},store.get("brainCfg",{}));
 const saveBC=()=>store.set("brainCfg",BC);
 const inClaude=/claude\.ai|claudeusercontent|anthropic/.test(location.hostname);
-function sseLines(res,onData){const rd=res.body.getReader(),dec=new TextDecoder();let buf="";return (async function*(){while(true){const {done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;while((i=buf.indexOf("\n"))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!line.startsWith("data:"))continue;const d=line.slice(5).trim();if(d==="[DONE]")return;try{const t=onData(JSON.parse(d));if(t)yield {choices:[{delta:{content:t}}]}}catch(e){}}}})()}
+let SSE_IDLE_MS=25000; /* v20 (B1): tests may shrink this */
+/* v20 (B1): a stalled stream used to wedge the chat forever — apiEngine clears
+   its 60 s abort timer when headers arrive, and this reader had NO idle
+   timeout, so S.busy never cleared. Now a read that goes quiet for
+   SSE_IDLE_MS cancels the stream and throws; aiReply recovers (below). */
+function sseLines(res,onData){const rd=res.body.getReader(),dec=new TextDecoder();let buf="";return (async function*(){while(true){let timer;const idle=new Promise((_,rej)=>{timer=setTimeout(()=>rej(new Error("stall: no stream data for "+Math.round(SSE_IDLE_MS/1000)+"s")),SSE_IDLE_MS)});let r;try{r=await Promise.race([rd.read(),idle])}catch(e){clearTimeout(timer);try{rd.cancel()}catch(_){}throw e}clearTimeout(timer);const {done,value}=r;if(done)break;buf+=dec.decode(value,{stream:true});let i;while((i=buf.indexOf("\n"))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!line.startsWith("data:"))continue;const d=line.slice(5).trim();if(d==="[DONE]")return;try{const t=onData(JSON.parse(d));if(t)yield {choices:[{delta:{content:t}}]}}catch(e){}}}})()}
 function apiEngine(c){
   return {kind:c.kind,label:c.label,chat:{completions:{create:async o=>{
     const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),60000);
@@ -421,14 +426,40 @@ function apiEngine(c){
     return sseLines(res,j=>j.choices&&j.choices[0]&&j.choices[0].delta&&(j.choices[0].delta.content||"")||"")}}}};
 }
 const cleanAI=s=>s.replace(/<think>[\s\S]*?<\/think>/g,"").replace(/<think>[\s\S]*$/,"").trim();
-aiReply=async function(bubble){
-  const msgs=[{role:"system",content:sysPrompt()},...S.history.slice(-12)];let out="";
-  const opt={messages:msgs,stream:true,temperature:.9,max_tokens:260};
+/* ===== v20 strings + friendly errors (audit m12: never show raw API JSON) ===== */
+Object.assign(PACKS.en.ui,{contChip:"Continue ▸",br_err_key:"That API key was rejected — check it in Settings → AI brain.",br_err_busy:"The AI is busy right now — wait a moment and try again.",br_err_net:"No connection — check your internet and try again.",br_err_stall:"The reply stalled — Spark answered this one instead.",br_err_gen:"The AI brain hit a problem — Spark answered this one instead."});
+Object.assign(PACKS.vi.ui,{contChip:"Tiếp tục ▸",br_err_key:"Khóa API đó bị từ chối — kiểm tra lại trong Cài đặt → Bộ não AI nhé.",br_err_busy:"AI đang bận — đợi một lát rồi thử lại nhé.",br_err_net:"Không có kết nối — kiểm tra internet rồi thử lại nhé.",br_err_stall:"Câu trả lời bị đứng — Spark đã trả lời thay lần này.",br_err_gen:"Bộ não AI gặp sự cố — Spark đã trả lời thay lần này."});
+function brErrText(e){const s=String((e&&e.message)||e||"");console.warn("Funhouse brain error:",s); /* raw text stays in the console only */
+  if(/stall|idle|abort/i.test(s))return TT("br_err_stall");
+  if(/\b401\b|\b403\b|api[- ]?key|unauthor|invalid.*key/i.test(s))return TT("br_err_key");
+  if(/\b429\b|rate|quota|too many/i.test(s))return TT("br_err_busy");
+  if(/failed to fetch|network|load failed|offline|enotfound|socket/i.test(s))return TT("br_err_net");
+  return TT("br_err_gen")}
+aiReply=async function(bubble,extra){
+  const msgs=[{role:"system",content:sysPrompt()},...S.history.slice(-12)];if(extra)msgs.push(extra);let out="";
+  /* v20 (M2): cap raised 260 → 512 — translations, stories and explanations
+     were cut off mid-sentence; short chat is unaffected (the system prompt
+     already asks for 1–3 short sentences). */
+  const opt={messages:msgs,stream:true,temperature:.9,max_tokens:512};
   if(S.engine&&S.engine.kind==="webllm"&&/Qwen3/.test(S.engine.label||""))opt.extra_body={enable_thinking:false};
   try{const chunks=await S.engine.chat.completions.create(opt);for await(const c of chunks){out+=c.choices[0]?.delta?.content||"";const v=cleanAI(out);if(v)bubble.textContent=v;scrollDown()}}
-  catch(e){if(!S._aiErrAt||Date.now()-S._aiErrAt>20000){S._aiErrAt=Date.now();toast(fill(TT("br_fail"),{e:String(e.message||e).slice(0,90)}))}return ""}
+  catch(e){console.warn("aiReply failed:",e);
+    if(!cleanAI(out)){if(!S._aiErrAt||Date.now()-S._aiErrAt>20000){S._aiErrAt=Date.now();toast(brErrText(e))}return ""}
+    return cleanAI(out)} /* partial stream: keep what arrived — send() offers Continue */
   return cleanAI(out);
 };
+/* v20 (M2): did this reply end mid-sentence? (long + no closing punctuation) */
+function looksCut(t){t=(t||"").trim();if(t.length<200)return false;return !/[.!?…。！？]["'”’»)]*$/.test(t)&&!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]$/u.test(t)}
+let contBusy=false;
+async function continueReply(){
+  if(contBusy||S.busy||!S.brainOn||!S.engine)return;contBusy=true;S.busy=true;
+  const b=addMsg("bot","");mascot("talk");
+  try{const out=await aiReply(b,{role:"user",content:"(Continue exactly where you stopped. Do not repeat anything you already said.)"});const fin=out||"";
+    b.textContent=fin||"…";
+    if(fin){S.history.push({role:"assistant",content:fin});srSay(fin);speak(fin)}
+    setChips(looksCut(fin)?[{t:TT("contChip"),c:"continue"},...defaultChips()]:null);sfx("blip2");talk(fin||"…")}
+  finally{S.busy=false;contBusy=false}
+}
 function brainLabel(){if(BC.kind==="web"){const m=WEBM.find(x=>x[0]===BC.web);return m?m[1]:"AI"}if(BC.kind==="local")return (BC.lmodel||"Local").split(":")[0];if(BC.kind==="cloud"){const p=CLOUD[BC.cprov];return (BC.cmodel[BC.cprov]||p.m).replace(/^models\//,"").slice(0,22)}return "Spark"}
 function cloudCfg(){const p=CLOUD[BC.cprov];return {kind:"cloud",prov:BC.cprov,anth:BC.cprov==="anthropic",url:BC.curl[BC.cprov]||p.url,key:BC.keys[BC.cprov]||"",model:BC.cmodel[BC.cprov]||p.m,label:brainLabel()}}
 function localCfg(){return {kind:"local",prov:"local",url:BC.lurl,key:"",model:BC.lmodel,label:brainLabel()}}
@@ -451,7 +482,7 @@ loadBrain=async function(){
     finally{btn.disabled=false}return}
   btn.disabled=true;prog.textContent=TT("br_test");setChip("load",T("bLoading"));
   try{await connectBrain(true);prog.textContent="✓ "+fill(TT("br_ok"),{m:brainLabel()});toast(fill(TT("br_ok"),{m:brainLabel()}));sfx("win")}
-  catch(e){S.brainOn=false;S.engine=null;setChip("spark","Spark");prog.textContent=fill(TT("br_fail"),{e:String(e.message||e).slice(0,140)})}
+  catch(e){S.brainOn=false;S.engine=null;setChip("spark","Spark");prog.textContent=brErrText(e)}
   finally{btn.disabled=false}
 };
 function buildBrainPanel(){
@@ -487,7 +518,7 @@ function buildBrainPanel(){
     try{const hd={};if(cfg.anth){hd["x-api-key"]=cfg.key;hd["anthropic-version"]="2023-06-01";hd["anthropic-dangerous-direct-browser-access"]="true"}else if(cfg.key)hd.authorization="Bearer "+cfg.key;
       const r=await fetch(cfg.url.replace(/\/$/,"")+"/models",{headers:hd});if(!r.ok)throw new Error(r.status);const j=await r.json();const ids=(j.data||j.models||[]).map(m=>(m.id||m.name||"").replace(/^models\//,"")).filter(Boolean).sort();
       dl.innerHTML="";ids.forEach(id=>dl.append(h("option",{value:id})));toast("✓ "+ids.length+" models");}
-    catch(e){toast(fill(TT("br_fail"),{e:String(e.message||e)}))}finally{btn.disabled=false;btn.textContent=old}};
+    catch(e){toast(brErrText(e))}finally{btn.disabled=false;btn.textContent=old}};
   $("#lList").onclick=e=>{BC.lurl=$("#lUrl").value.trim();saveBC();listModels(localCfg(),$("#lModels"),e.target)};
   $("#cList").onclick=e=>{BC.keys[prov.value]=$("#cKey").value.trim();saveBC();listModels(cloudCfg(),$("#cModels"),e.target)};
   $("#loadBrain").onclick=()=>{BC.lurl=$("#lUrl").value.trim();BC.lmodel=$("#lModel").value.trim();BC.keys[prov.value]=$("#cKey").value.trim();BC.cmodel[prov.value]=$("#cModel").value.trim();BC.curl[prov.value]=$("#cUrl").value.trim();saveBC();loadBrain()};

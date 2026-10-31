@@ -610,6 +610,13 @@ body:has(#kidLock) .hb-modal{z-index:9700}.kid-lock-box{max-width:380px;text-ali
 body.nomic #micBtn,body.nomic #talkBtn,body.nomic .ac-mic,body.nomic #micHintBar{display:none!important}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
+
+/* ===== v20: screen-reader live region + minimum tap targets (m2, m4) ===== */
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.stage-tools button{flex-basis:40px;width:40px;height:40px}
+.acts button{min-width:40px;min-height:40px}
+#langHintBar .btn{min-height:40px;padding:6px 14px}
+@media (max-width:420px){.composer .icon-btn{flex:0 0 44px;width:44px;height:44px}}
 </style>
 </head>
 <body>
@@ -653,7 +660,8 @@ body.nomic #micBtn,body.nomic #talkBtn,body.nomic .ac-mic,body.nomic #micHintBar
 
   <main class="stage pad" id="stage">
     <section class="view" id="view-chat">
-      <div class="chat" id="chat" aria-live="polite"></div>
+      <div class="chat" id="chat"></div>
+      <div id="srLive" class="sr-only" role="status" aria-live="polite"></div>
       <div class="chips" id="chips"></div>
     </section>
 
@@ -856,9 +864,9 @@ body.nomic #micBtn,body.nomic #talkBtn,body.nomic .ac-mic,body.nomic #micHintBar
   <div id="langHintBar" class="pad" hidden><span id="langHintTxt"></span> <button type="button" id="langHintYes" class="btn small" aria-label="Switch language">✓</button> <button type="button" id="langHintNo" class="btn small ghost" aria-label="Keep current language">✕</button></div>
   <div class="composer pad" id="composer">
     <button class="icon-btn" id="stageBtn" type="button" aria-label="Show or hide the stage">🎭</button>
-    <button class="icon-btn" id="talkBtn" type="button" aria-label="Hands-free talk mode">🗣️</button>
+    <button class="icon-btn" id="talkBtn" type="button" aria-label="Hands-free talk mode" aria-pressed="false">🗣️</button>
     <button class="icon-btn" id="micBtn" type="button" aria-label="Speak your message" hidden>🎙️</button>
-    <textarea id="input" rows="1" data-ip="ph" placeholder="Ask, wish, or just say hi…" aria-label="Message"></textarea>
+    <textarea id="input" rows="1" dir="auto" data-ip="ph" placeholder="Ask, wish, or just say hi…" aria-label="Message"></textarea>
     <button class="icon-btn send" id="sendBtn" type="button" data-i="send">SEND</button>
   </div>
 
@@ -1585,34 +1593,21 @@ function sysPrompt(){
   const spice=["Keep humor very gentle.","Be silly and playful.","Be wildly absurd and surreal, but always clean and kind."][S.spice];
   const lang=S.lang==="auto"?"Reply in the same language the user writes in (most recent: "+AI_NAME[S.cur]+").":"Always reply in "+AI_NAME[S.lang]+".";
   const likes=S.likes.length?" Things the user likes: "+S.likes.join(", ")+". Mention them only when it fits naturally.":"";
-  return m.sys+" "+spice+" "+lang+" The user's name is "+userName()+"."+likes+" Rules: reply in 1 to 3 short sentences, stay PG and kind, never mean, never give dangerous advice. If the user seems sad, comfort them first. Always end with one short playful question back to the user, like a real conversation.";
+  return m.sys+" "+spice+" "+lang+" The user's name is "+userName()+"."+likes+" Rules: reply in 1 to 3 short sentences, stay PG and kind, never mean, never give dangerous advice. If the user seems sad, comfort them first. Often end with a short playful question or a warm closing line — vary it, so it feels like a real conversation, not a script.";
 }
-async function loadBrain(){
-  const btn=$("#loadBrain");
-  if(!navigator.gpu){$("#brainNote").textContent=T("bNoGpu");return}
-  btn.disabled=true;setChip("load",T("bLoading"));
-  try{
-    const webllm=await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.78/+esm");
-    const model=$("#modelSel").value;
-    S.engine=await webllm.CreateMLCEngine(model,{initProgressCallback:p=>{$("#brainBar").style.width=Math.round((p.progress||0)*100)+"%";$("#brainProg").textContent=p.text||T("bLoading")}});
-    S.brainOn=true;store.set("model",model);setChip("ai","AI");$("#brainProg").textContent="✓ "+model.split("-q4")[0];toast(T("bReady"));sfx("win");
-  }catch(e){S.brainOn=false;setChip("spark","Spark");$("#brainNote").textContent=T("bErr");$("#brainProg").textContent="—"}
-  finally{btn.disabled=false}
-}
+/* v20 (audit m15): the original loadBrain (web-llm 0.2.78) and aiReply
+   (max_tokens:200) that used to live here were DEAD — src/js/06 replaces both
+   unconditionally at load (and rebinds #loadBrain.onclick in buildBrainPanel),
+   and every caller resolves the globals at call time. Removed so nobody
+   patches the wrong copy again. The live versions are in src/js/06. */
 function setChip(kind,label){$("#brainDot").className="dot"+(kind==="ai"?" ai":kind==="load"?" load":"");$("#brainLabel").textContent=label}
-async function aiReply(bubble){
-  const msgs=[{role:"system",content:sysPrompt()},...S.history.slice(-10)];let out="";
-  const chunks=await S.engine.chat.completions.create({messages:msgs,stream:true,temperature:0.95,max_tokens:200});
-  for await(const c of chunks){out+=c.choices[0]?.delta?.content||"";bubble.textContent=out;scrollDown()}
-  return out.trim();
-}
 
 /* ================= chat UI ================= */
 const chatEl=$("#chat");let lastUser="";
 function scrollDown(){const st=$("#stage");st.scrollTop=st.scrollHeight}
 function addMsg(who,text){
   const row=document.createElement("div");row.className="msg "+(who==="me"?"me":"bot");
-  const b=document.createElement("div");b.className="bubble";b.textContent=text;
+  const b=document.createElement("div");b.className="bubble";b.dir="auto";b.textContent=text; /* v20 (m3): RTL replies render in the right direction */
   if(who!=="me"){
     const av=document.createElement("div");av.className="avatar face";av.innerHTML=faceSVG(curChar());av.title=curChar().name+" · "+MODES[S.mode].em;row.append(av);
     const wrap=document.createElement("div");wrap.className="bwrap";wrap.append(b);
@@ -1637,10 +1632,15 @@ function setChips(list){
   (list&&list.length?list:defaultChips()).forEach(it=>{const o=typeof it==="string"?{t:it,c:null}:it;
     const b=document.createElement("button");b.type="button";b.className="chip";b.textContent=o.t;b.onclick=()=>o.c?command(o.c,o.t):send(o.t);c.append(b)});
 }
-function oracle(text,chips){addMsg("bot",text);S.history.push({role:"assistant",content:text});speak(text);setChips(chips);sfx("blip2");talk(text)}
+/* v20 (m2): #chat is no longer a live region (streaming rewrote it per token
+   and screen readers re-announced the whole reply). Final texts are announced
+   ONCE here instead, via the visually-hidden #srLive region. */
+function srSay(t){const el=$("#srLive");if(!el||!t)return;el.textContent="";setTimeout(()=>{el.textContent=t},40)}
+function oracle(text,chips){addMsg("bot",text);S.history.push({role:"assistant",content:text});srSay(text);speak(text);setChips(chips);sfx("blip2");talk(text)}
 function typing(){const row=document.createElement("div");row.className="msg bot";row.innerHTML='<div class="avatar face">'+faceSVG(curChar())+'</div><div class="bubble typing"><span></span><span></span><span></span></div>';chatEl.append(row);scrollDown();mascot("think");return row}
 
 function command(c,label){
+  if(c==="continue"){if(typeof continueReply==="function")continueReply();return} /* v20 (M2) */
   if(c==="game"){switchTab("games");return}
   if(c==="wish"&&!S.game){switchTab("wish");$("#wishInput").focus();return}
   addMsg("me",label);lastUser=label;S.history.push({role:"user",content:label});sfx("blip");
@@ -1762,6 +1762,7 @@ function translateRequest(t){
   const code=LANG_ALIAS[tm[1]];if(!code)return null;
   if(!/\b(say|translate|translation|how do you say|what is|whats|what does|mean|means)\b/.test(n))return null; /* a translation cue must be present */
   let phraseRaw=null;const q=(t||"").match(/['"“”‘’]([^'"“”‘’]{1,80})['"“”‘’]/);if(q)phraseRaw=q[1].trim();
+  if(!phraseRaw){const cm=(t||"").match(new RegExp("\\b(?:in|to|into) ("+ALIAS_RE+")\\s*[:：]\\s*(.{1,200})$","i"));if(cm)phraseRaw=cm[2].trim()} /* v20 (M6): "translate to Spanish: <text>" */
   if(!phraseRaw){
     phraseRaw=n.replace(new RegExp("\\s+(?:in|to|into) ("+ALIAS_RE+")( please| por favor)?$"),"").replace(/^(please\s+)?(how do you say|how to say|can you say|could you say|say|translate|translation of|what is|whats|what does|tell me)\s+/,"").replace(/\s+(mean|means)$/,"").trim();
   }
@@ -1870,8 +1871,17 @@ async function send(raw,already){
   try{
     if(S._repeatAck){const r=S._repeatAck;S._repeatAck=null;ty.remove();if(r.good)oracle(TT("trPraise"));else{oracle(fill(TT("trRetry"),{t:r.tr.txt}));if(S.voice)speakAs(curChar(),r.tr.txt,null,r.tr.code)}return}
     if(S._transReq){const q=S._transReq;S._transReq=null;ty.remove(); /* translation = a mini-lesson, conversation stays pinned */
+      /* v20 (M6): "translate this/that" means the last thing said — resolve it */
+      if(q.phraseNorm==="this"||q.phraseNorm==="that"||q.phraseNorm==="it"){
+        let prev="";for(let i=S.history.length-1;i>=0;i--){if(S.history[i].role==="assistant"){prev=S.history[i].content;break}}
+        if(!prev)for(let i=S.history.length-2;i>=0;i--){if(S.history[i].role==="user"){prev=S.history[i].content;break}}
+        if(prev){q.phraseRaw=prev.slice(0,500);q.phraseNorm=langNorm(prev)}}
       let txt=trBookLookup(q);
-      if(!txt&&S.brainOn&&S.engine&&typeof quickAI==="function")txt=await quickAI("Translate the following text into "+(REG_NAME[q.code]||q.code)+". Reply with ONLY the translation, no quotes, no explanation: \""+q.phraseRaw+"\"");
+      /* v20 (M6): then Chrome's on-device Translator (any pair), then the brain
+         with a translation-sized token cap — quickAI's 80 tokens truncated
+         paragraph translations mid-sentence. */
+      if(!txt&&typeof trOnDevice==="function")txt=await trOnDevice(q.phraseRaw,replyLang(),q.code);
+      if(!txt&&S.brainOn&&S.engine&&typeof translateAI==="function")txt=await translateAI(q.phraseRaw,q.code);
       if(txt){let disp=fill(TT("trLead"),{n:langNameOf(q.code)})+" “"+txt+"”"+trTeachLines(q);const noV=(typeof VOICES!=="undefined"&&VOICES.length&&typeof voicesFor==="function"&&!voicesFor(q.code).length);if(noV)disp+=" "+TT("trNoVoice");addMsg("bot",disp);S.history.push({role:"assistant",content:disp});mascot("talk");lastTr={txt,code:q.code};if(S.voice)speakAs(curChar(),txt,null,q.code)}
       else oracle(fill(TT("trCant"),{p:q.phraseRaw}));
       setChips();return}
@@ -1880,7 +1890,9 @@ async function send(raw,already){
     if(S.brainOn&&S.engine){
       captureFacts(t);ty.remove();const b=addMsg("bot","");mascot("talk");
       const out=await aiReply(b);const fin=out||sparkReply(t);b.textContent=fin;
-      S.history.push({role:"assistant",content:fin});speak(fin);setChips();sfx("blip2");talk(fin);
+      S.history.push({role:"assistant",content:fin});srSay(fin);speak(fin);
+      /* v20 (M2): a long reply cut off mid-sentence gets a Continue chip */
+      setChips(out&&typeof looksCut==="function"&&looksCut(fin)?[{t:TT("contChip"),c:"continue"},...defaultChips()]:null);sfx("blip2");talk(fin);
     } else {
       await new Promise(r=>setTimeout(r,420+Math.random()*480));ty.remove();oracle(sparkReply(t));
     }
@@ -2019,7 +2031,7 @@ function speakAs(c,text,after){
   }catch(e){if(after)after()}
 }
 function setTalk(on){
-  S.talk=on;$("#talkBtn").classList.toggle("talk-on",on);$("#talkSw").setAttribute("aria-checked",on);
+  S.talk=on;const tb=$("#talkBtn");tb.classList.toggle("talk-on",on);tb.setAttribute("aria-pressed",on?"true":"false");tb.title=TT("talkModeN");$("#talkSw").setAttribute("aria-checked",on); /* v20 (M8): the button now says what state it is in */
   if(!on){micStop(false);toast(T("talkOff"));return}
   if(!SR){toast(T("micOff"));}else toast(T("talkOn"));
   if(SR&&!(window.speechSynthesis&&speechSynthesis.speaking))listen();
@@ -2082,7 +2094,7 @@ function micSpeaking(){ /* is the companion's voice playing right now? (any engi
 }
 function micState(){ /* the visible session state: button + hint bar, never silent */
   const b=$("#micBtn");
-  if(b){b.classList.toggle("rec",!!rec);b.classList.toggle("von",micOn&&!rec&&!micDead);b.classList.toggle("dead",micOn&&micDead);b.setAttribute("aria-pressed",micOn?"true":"false")}
+  if(b){b.classList.toggle("rec",!!rec);b.classList.toggle("von",micOn&&!rec&&!micDead);b.classList.toggle("dead",micOn&&micDead);b.setAttribute("aria-pressed",micOn?"true":"false");b.title=micOn?(micDead?T("micStalled"):T("micLive")):""}
   const bar=$("#micHintBar");
   if(bar){bar.hidden=!micOn;if(micOn)bar.textContent=micDead?T("micStalled"):T("micVon")}
 }
@@ -2350,6 +2362,18 @@ $("#talkBtn").onclick=()=>setTalk(!S.talk);
 $("#talkSw").onclick=()=>setTalk(!S.talk);
 $("#voiceSel").onchange=e=>{S.voiceName=e.target.value;store.set("voiceName",S.voiceName);speakAs(curChar(),fill(HI_IM[replyLang()]||HI_IM.en,{n:curChar().name}))};
 if("speechSynthesis" in window){loadVoices();try{speechSynthesis.addEventListener("voiceschanged",loadVoices)}catch(e){speechSynthesis.onvoiceschanged=loadVoices}}
+/* ===== v20 (M4): keep the composer above the mobile keyboard =====
+   iOS Safari / installed PWAs shrink the visual viewport when the keyboard
+   opens but leave the layout viewport (and .app{height:100%}) untouched —
+   the composer and newest messages ended up hidden behind the keyboard.
+   While the keyboard is up, pin .app to the visual viewport height so the
+   flex column reflows and the composer stays visible; restore on close. */
+if(window.visualViewport){const vv=window.visualViewport;let kbT=null;
+  const fit=()=>{const app=$(".app");if(!app)return;const kb=innerHeight-vv.height-vv.offsetTop>60;
+    app.style.height=kb?vv.height+"px":"";
+    if(kb){clearTimeout(kbT);kbT=setTimeout(scrollDown,60)}};
+  vv.addEventListener("resize",fit);vv.addEventListener("scroll",fit);
+  $("#input").addEventListener("focus",()=>setTimeout(()=>{fit();scrollDown()},80));}
 /* init runs at the end of the extension script */
 </script>
 <script>
@@ -4134,7 +4158,12 @@ const CLOUD={openai:{n:"OpenAI",url:"https://api.openai.com/v1",m:"gpt-6-luna"},
 let BC=Object.assign({kind:"spark",web:"Qwen3.5-2B-q4f16_1-MLC",lurl:"http://localhost:11434/v1",lmodel:"llama3.2",cprov:"gemini",keys:{},cmodel:{},curl:{}},store.get("brainCfg",{}));
 const saveBC=()=>store.set("brainCfg",BC);
 const inClaude=/claude\.ai|claudeusercontent|anthropic/.test(location.hostname);
-function sseLines(res,onData){const rd=res.body.getReader(),dec=new TextDecoder();let buf="";return (async function*(){while(true){const {done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;while((i=buf.indexOf("\n"))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!line.startsWith("data:"))continue;const d=line.slice(5).trim();if(d==="[DONE]")return;try{const t=onData(JSON.parse(d));if(t)yield {choices:[{delta:{content:t}}]}}catch(e){}}}})()}
+let SSE_IDLE_MS=25000; /* v20 (B1): tests may shrink this */
+/* v20 (B1): a stalled stream used to wedge the chat forever — apiEngine clears
+   its 60 s abort timer when headers arrive, and this reader had NO idle
+   timeout, so S.busy never cleared. Now a read that goes quiet for
+   SSE_IDLE_MS cancels the stream and throws; aiReply recovers (below). */
+function sseLines(res,onData){const rd=res.body.getReader(),dec=new TextDecoder();let buf="";return (async function*(){while(true){let timer;const idle=new Promise((_,rej)=>{timer=setTimeout(()=>rej(new Error("stall: no stream data for "+Math.round(SSE_IDLE_MS/1000)+"s")),SSE_IDLE_MS)});let r;try{r=await Promise.race([rd.read(),idle])}catch(e){clearTimeout(timer);try{rd.cancel()}catch(_){}throw e}clearTimeout(timer);const {done,value}=r;if(done)break;buf+=dec.decode(value,{stream:true});let i;while((i=buf.indexOf("\n"))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!line.startsWith("data:"))continue;const d=line.slice(5).trim();if(d==="[DONE]")return;try{const t=onData(JSON.parse(d));if(t)yield {choices:[{delta:{content:t}}]}}catch(e){}}}})()}
 function apiEngine(c){
   return {kind:c.kind,label:c.label,chat:{completions:{create:async o=>{
     const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),60000);
@@ -4150,14 +4179,40 @@ function apiEngine(c){
     return sseLines(res,j=>j.choices&&j.choices[0]&&j.choices[0].delta&&(j.choices[0].delta.content||"")||"")}}}};
 }
 const cleanAI=s=>s.replace(/<think>[\s\S]*?<\/think>/g,"").replace(/<think>[\s\S]*$/,"").trim();
-aiReply=async function(bubble){
-  const msgs=[{role:"system",content:sysPrompt()},...S.history.slice(-12)];let out="";
-  const opt={messages:msgs,stream:true,temperature:.9,max_tokens:260};
+/* ===== v20 strings + friendly errors (audit m12: never show raw API JSON) ===== */
+Object.assign(PACKS.en.ui,{contChip:"Continue ▸",br_err_key:"That API key was rejected — check it in Settings → AI brain.",br_err_busy:"The AI is busy right now — wait a moment and try again.",br_err_net:"No connection — check your internet and try again.",br_err_stall:"The reply stalled — Spark answered this one instead.",br_err_gen:"The AI brain hit a problem — Spark answered this one instead."});
+Object.assign(PACKS.vi.ui,{contChip:"Tiếp tục ▸",br_err_key:"Khóa API đó bị từ chối — kiểm tra lại trong Cài đặt → Bộ não AI nhé.",br_err_busy:"AI đang bận — đợi một lát rồi thử lại nhé.",br_err_net:"Không có kết nối — kiểm tra internet rồi thử lại nhé.",br_err_stall:"Câu trả lời bị đứng — Spark đã trả lời thay lần này.",br_err_gen:"Bộ não AI gặp sự cố — Spark đã trả lời thay lần này."});
+function brErrText(e){const s=String((e&&e.message)||e||"");console.warn("Funhouse brain error:",s); /* raw text stays in the console only */
+  if(/stall|idle|abort/i.test(s))return TT("br_err_stall");
+  if(/\b401\b|\b403\b|api[- ]?key|unauthor|invalid.*key/i.test(s))return TT("br_err_key");
+  if(/\b429\b|rate|quota|too many/i.test(s))return TT("br_err_busy");
+  if(/failed to fetch|network|load failed|offline|enotfound|socket/i.test(s))return TT("br_err_net");
+  return TT("br_err_gen")}
+aiReply=async function(bubble,extra){
+  const msgs=[{role:"system",content:sysPrompt()},...S.history.slice(-12)];if(extra)msgs.push(extra);let out="";
+  /* v20 (M2): cap raised 260 → 512 — translations, stories and explanations
+     were cut off mid-sentence; short chat is unaffected (the system prompt
+     already asks for 1–3 short sentences). */
+  const opt={messages:msgs,stream:true,temperature:.9,max_tokens:512};
   if(S.engine&&S.engine.kind==="webllm"&&/Qwen3/.test(S.engine.label||""))opt.extra_body={enable_thinking:false};
   try{const chunks=await S.engine.chat.completions.create(opt);for await(const c of chunks){out+=c.choices[0]?.delta?.content||"";const v=cleanAI(out);if(v)bubble.textContent=v;scrollDown()}}
-  catch(e){if(!S._aiErrAt||Date.now()-S._aiErrAt>20000){S._aiErrAt=Date.now();toast(fill(TT("br_fail"),{e:String(e.message||e).slice(0,90)}))}return ""}
+  catch(e){console.warn("aiReply failed:",e);
+    if(!cleanAI(out)){if(!S._aiErrAt||Date.now()-S._aiErrAt>20000){S._aiErrAt=Date.now();toast(brErrText(e))}return ""}
+    return cleanAI(out)} /* partial stream: keep what arrived — send() offers Continue */
   return cleanAI(out);
 };
+/* v20 (M2): did this reply end mid-sentence? (long + no closing punctuation) */
+function looksCut(t){t=(t||"").trim();if(t.length<200)return false;return !/[.!?…。！？]["'”’»)]*$/.test(t)&&!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]$/u.test(t)}
+let contBusy=false;
+async function continueReply(){
+  if(contBusy||S.busy||!S.brainOn||!S.engine)return;contBusy=true;S.busy=true;
+  const b=addMsg("bot","");mascot("talk");
+  try{const out=await aiReply(b,{role:"user",content:"(Continue exactly where you stopped. Do not repeat anything you already said.)"});const fin=out||"";
+    b.textContent=fin||"…";
+    if(fin){S.history.push({role:"assistant",content:fin});srSay(fin);speak(fin)}
+    setChips(looksCut(fin)?[{t:TT("contChip"),c:"continue"},...defaultChips()]:null);sfx("blip2");talk(fin||"…")}
+  finally{S.busy=false;contBusy=false}
+}
 function brainLabel(){if(BC.kind==="web"){const m=WEBM.find(x=>x[0]===BC.web);return m?m[1]:"AI"}if(BC.kind==="local")return (BC.lmodel||"Local").split(":")[0];if(BC.kind==="cloud"){const p=CLOUD[BC.cprov];return (BC.cmodel[BC.cprov]||p.m).replace(/^models\//,"").slice(0,22)}return "Spark"}
 function cloudCfg(){const p=CLOUD[BC.cprov];return {kind:"cloud",prov:BC.cprov,anth:BC.cprov==="anthropic",url:BC.curl[BC.cprov]||p.url,key:BC.keys[BC.cprov]||"",model:BC.cmodel[BC.cprov]||p.m,label:brainLabel()}}
 function localCfg(){return {kind:"local",prov:"local",url:BC.lurl,key:"",model:BC.lmodel,label:brainLabel()}}
@@ -4180,7 +4235,7 @@ loadBrain=async function(){
     finally{btn.disabled=false}return}
   btn.disabled=true;prog.textContent=TT("br_test");setChip("load",T("bLoading"));
   try{await connectBrain(true);prog.textContent="✓ "+fill(TT("br_ok"),{m:brainLabel()});toast(fill(TT("br_ok"),{m:brainLabel()}));sfx("win")}
-  catch(e){S.brainOn=false;S.engine=null;setChip("spark","Spark");prog.textContent=fill(TT("br_fail"),{e:String(e.message||e).slice(0,140)})}
+  catch(e){S.brainOn=false;S.engine=null;setChip("spark","Spark");prog.textContent=brErrText(e)}
   finally{btn.disabled=false}
 };
 function buildBrainPanel(){
@@ -4216,7 +4271,7 @@ function buildBrainPanel(){
     try{const hd={};if(cfg.anth){hd["x-api-key"]=cfg.key;hd["anthropic-version"]="2023-06-01";hd["anthropic-dangerous-direct-browser-access"]="true"}else if(cfg.key)hd.authorization="Bearer "+cfg.key;
       const r=await fetch(cfg.url.replace(/\/$/,"")+"/models",{headers:hd});if(!r.ok)throw new Error(r.status);const j=await r.json();const ids=(j.data||j.models||[]).map(m=>(m.id||m.name||"").replace(/^models\//,"")).filter(Boolean).sort();
       dl.innerHTML="";ids.forEach(id=>dl.append(h("option",{value:id})));toast("✓ "+ids.length+" models");}
-    catch(e){toast(fill(TT("br_fail"),{e:String(e.message||e)}))}finally{btn.disabled=false;btn.textContent=old}};
+    catch(e){toast(brErrText(e))}finally{btn.disabled=false;btn.textContent=old}};
   $("#lList").onclick=e=>{BC.lurl=$("#lUrl").value.trim();saveBC();listModels(localCfg(),$("#lModels"),e.target)};
   $("#cList").onclick=e=>{BC.keys[prov.value]=$("#cKey").value.trim();saveBC();listModels(cloudCfg(),$("#cModels"),e.target)};
   $("#loadBrain").onclick=()=>{BC.lurl=$("#lUrl").value.trim();BC.lmodel=$("#lModel").value.trim();BC.keys[prov.value]=$("#cKey").value.trim();BC.cmodel[prov.value]=$("#cModel").value.trim();BC.curl[prov.value]=$("#cUrl").value.trim();saveBC();loadBrain()};
@@ -4581,6 +4636,16 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(M
 const TRC={};
 async function trNative(text){const to=natLang();if(!to||!text)return "";const tl={yue:"zh-Hant",zh:"zh"}[to]||to;
   try{if(!("Translator" in self))return "";if(!TRC[tl]){const av=await Translator.availability({sourceLanguage:"en",targetLanguage:tl});if(av==="unavailable")return "";TRC[tl]=await Translator.create({sourceLanguage:"en",targetLanguage:tl})}return await TRC[tl].translate(text)}catch(e){return ""}}
+/* v20 (M6): the same on-device Translator, but for ANY pair — the chat
+   translation path in send() uses it before spending brain tokens. "" on any
+   failure (API absent, pair unavailable, model not downloaded). */
+const TRD={};
+async function trOnDevice(text,from,to){if(!text||!from||!to||from===to)return "";
+  const fl={yue:"zh-Hant",zh:"zh"}[from]||(typeof LANG_TAG!=="undefined"&&LANG_TAG[from])||from,tl={yue:"zh-Hant",zh:"zh"}[to]||(typeof LANG_TAG!=="undefined"&&LANG_TAG[to])||to;
+  if(fl===tl)return "";
+  try{if(!("Translator" in self))return "";const k=fl+">"+tl;
+    if(!TRD[k]){const av=await Translator.availability({sourceLanguage:fl,targetLanguage:tl});if(av==="unavailable")return "";TRD[k]=await Translator.create({sourceLanguage:fl,targetLanguage:tl})}
+    return await TRD[k].translate(text)}catch(e){return ""}}
 function wordNative(w){return natLang()==="vi"?(w[3]||""):""}
 /* English voice for the academy, slower for beginners */
 function enSay(text,after,slow){const c=Object.assign({},E&&E.on?cur3d():curChar());c.rate=(c.rate||1)*(slow?.8:(["A0","A1"].includes(ACD.lv||"A0")?.88:1));speakAs(c,text,after,"en")}
@@ -4807,6 +4872,9 @@ async function renderWordsX(A){
     h("button",{type:"button",class:"ac-opt ok",onclick:()=>{ACD.seen[w[0]]=1;acSrsAdd(w[0],{w:w[0],def:w[3],ex:w[4],lv:w[2]});saveACD();HB.add(1,"word");HB.ev("words");X.i++;renderAcad()}},"＋ "+TT("ac_learn"))));
 }
 async function quickAI(prompt){try{const it=await S.engine.chat.completions.create({messages:[{role:"user",content:prompt}],max_tokens:80,temperature:.3,stream:true});let o="";for await(const c of it)o+=c.choices[0]?.delta?.content||"";return cleanAI(o)}catch(e){return ""}}
+/* v20 (M6/M2): translation through the brain with a translation-sized cap —
+   quickAI's 80 tokens cut paragraph translations off mid-sentence. */
+async function translateAI(text,code){try{const it=await S.engine.chat.completions.create({messages:[{role:"user",content:"Translate the following text into "+((typeof REG_NAME!=="undefined"&&REG_NAME[code])||(typeof AI_NAME!=="undefined"&&AI_NAME[code])||code)+". Reply with ONLY the translation, no quotes, no explanation: \""+text+"\""}],max_tokens:600,temperature:.2,stream:true});let o="";for await(const c of it)o+=c.choices[0]?.delta?.content||"";return cleanAI(o)}catch(e){return ""}}
 function renderTutorMenu(A){
   A.append(h("div",{class:"ac-lhead"},h("button",{type:"button",class:"btn ghost small",onclick:()=>{ACV.view="home";renderAcad()}},"✕"),h("b",null,"🗣️ "+TT("ac_tutor"))));
   if(!S.brainOn)A.append(h("div",{class:"panel"},h("p",{class:"note"},TT("ac_tutorNeed")),h("button",{type:"button",class:"btn",onclick:()=>{switchTab("me");setTimeout(()=>$("#brainKind")&&$("#brainKind").scrollIntoView({block:"center"}),100)}},"🧠 "+TT("ac_loadAI"))));
@@ -4980,21 +5048,36 @@ async function kkSpeak(c,text,after){const id=++VXQ.id;const parts=splitSent(tex
   for(let i=0;i<parts.length;i++){let a;try{a=await nextP}catch(e){break}if(id!==VXQ.id)return;if(i+1<parts.length)nextP=KK.tts.generate(parts[i+1],{voice,speed});
     const ac=audioCtx();const buf=ac.createBuffer(1,a.audio.length,a.sampling_rate);buf.copyToChannel(a.audio,0);await playBuffer(buf,id);if(id!==VXQ.id)return}
   if(after)after()}
-async function cloudSpeak(c,text,after){const id=++VXQ.id;
+async function cloudSpeak(c,text,after,lang){const id=++VXQ.id;
   try{let r;
     if(VX.cprov==="eleven"){r=await fetch("https://api.elevenlabs.io/v1/text-to-speech/"+encodeURIComponent(VX.elVoice)+"?output_format=mp3_44100_128",{method:"POST",headers:{"xi-api-key":VX.elKey,"content-type":"application/json"},body:JSON.stringify({text,model_id:"eleven_multilingual_v2"})})}
     else{const key=(BC.keys&&BC.keys.openai)||"";r=await fetch("https://api.openai.com/v1/audio/speech",{method:"POST",headers:{authorization:"Bearer "+key,"content-type":"application/json"},body:JSON.stringify({model:VX.cmodel,voice:c.g==="m"&&VX.cvoice==="nova"?"onyx":VX.cvoice,input:text,response_format:"mp3"})})}
     if(!r.ok)throw new Error(r.status);const ab=await r.arrayBuffer();if(id!==VXQ.id)return;const buf=await audioCtx().decodeAudioData(ab);await playBuffer(buf,id);if(id===VXQ.id&&after)after()}
-  catch(e){toast(fill(TT("vx_fail"),{e:String(e.message||e)}));browserSpeak(c,text,after,"en")}}
+  catch(e){toast(fill(TT("vx_fail"),{e:String(e.message||e)}));browserSpeak(c,text,after,lang||replyLang())}} /* v20 (M7): fall back in the reply's OWN language, not forced English */
+/* v20 (M3): browser speech used to send a whole reply as ONE utterance —
+   Chrome (remote voices) and iOS silently cut long utterances off
+   mid-sentence (bedtime stories were the worst hit). Now chunked with
+   splitSent + a per-utterance cap and queued sequentially, mirroring the
+   Kokoro path; VXQ.id is the cancellation token, like kkSpeak's. */
 function browserSpeak(c,text,after,l){
   if(!("speechSynthesis" in window)){if(after)after();return}
-  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const m=MODES[S.mode]||{pitch:1,rate:1};
-    u.pitch=Math.max(.1,Math.min(2,(c.pitch||1)*(1+(m.pitch-1)*.3)));u.rate=Math.max(.5,Math.min(1.6,(c.rate||1)*VX.speed*(1+(m.rate-1)*.5)));
-    u.lang=(LANGS[l]&&LANGS[l].b)||(typeof LANG_TAG!=="undefined"&&LANG_TAG[l])||"en-US";const v=pickVoice(c,l);if(v)u.voice=v; /* v19: registry tags beyond the original language list */
-    u.onstart=()=>{const el=$("#mascot");if(el){el.classList.remove("is-think","is-happy");el.classList.add("is-talk")}};
+  const id=++VXQ.id;const m=MODES[S.mode]||{pitch:1,rate:1};
+  const pitch=Math.max(.1,Math.min(2,(c.pitch||1)*(1+(m.pitch-1)*.3))),rate=Math.max(.5,Math.min(1.6,(c.rate||1)*VX.speed*(1+(m.rate-1)*.5)));
+  const lang=(LANGS[l]&&LANGS[l].b)||(typeof LANG_TAG!=="undefined"&&LANG_TAG[l])||"en-US";const v=pickVoice(c,l); /* v19: registry tags beyond the original language list */
+  const parts=[];splitSent(text).forEach(s=>{let r=s;while(r.length>180){let cut=r.lastIndexOf(" ",180);if(cut<60)cut=180;parts.push(r.slice(0,cut).trim());r=r.slice(cut).trim()}if(r)parts.push(r)});
+  if(!parts.length){if(after)after();return}
+  const el=$("#mascot");let i=0;
+  const step=()=>{if(id!==VXQ.id)return; /* a newer speak (or stop) superseded this queue */
+    if(i>=parts.length){if(el)el.classList.remove("is-talk");if(after)after();return}
+    const u=new SpeechSynthesisUtterance(parts[i++]);u.pitch=pitch;u.rate=rate;u.lang=lang;if(v)u.voice=v;
+    u.onstart=()=>{if(el){el.classList.remove("is-think","is-happy");el.classList.add("is-talk")}};
     u.onboundary=e=>{ST.wb=performance.now();ST.wl=Math.max(2,e.charLength||4);ST.hasWB=true};
-    u.onend=u.onerror=()=>{const el=$("#mascot");if(el)el.classList.remove("is-talk");if(after)after()};
-    speechSynthesis.speak(u);if(stageVisible())ST.talkUntil=performance.now()+600}catch(e){if(after)after()}}
+    let done=false;const fin=()=>{if(done)return;done=true;if(id===VXQ.id)step()};
+    u.onend=fin;u.onerror=fin;
+    try{speechSynthesis.speak(u)}catch(e){if(after)after()}};
+  try{speechSynthesis.cancel()}catch(e){}
+  if(stageVisible())ST.talkUntil=performance.now()+600;
+  step()}
 /* the one speak entry point for every character, now with a language override */
 speakAs=function(c,text,after,lang){
   if(typeof PH!=="undefined"&&PH.active&&(c===curChar()||c===cur3d()))c={g:PH.cur.g,pitch:PH.cur.pitch,rate:1,name:PH.cur.name,id:PH.cur.id};
@@ -5004,7 +5087,7 @@ speakAs=function(c,text,after,lang){
   stopAudio();try{speechSynthesis.cancel()}catch(e){}
   if(!clean){if(after)after();return}
   if(VX.engine==="kokoro"&&l==="en"){if(KK.ready)return kkSpeak(c,clean,after);if(store.get("kkCached",false)&&wasmOK&&!KK.loading)kkLoad()}
-  if(VX.engine==="cloud"&&(VX.cprov==="eleven"?VX.elKey:(BC.keys&&BC.keys.openai)))return cloudSpeak(c,clean,after);
+  if(VX.engine==="cloud"&&(VX.cprov==="eleven"?VX.elKey:(BC.keys&&BC.keys.openai)))return cloudSpeak(c,clean,after,l);
   browserSpeak(c,clean,after,l);
 };
 /* settings panel */
@@ -5092,7 +5175,7 @@ function chromeEngine(){const lang=["en","es","fr","de","ja"].includes(replyLang
     if(a==="unavailable"){prog.textContent=TT("br_chromeNo");return}
     setChip("load",T("bLoading"));if(a!=="available"){prog.textContent=T("bLoading");const s=await LanguageModel.create({monitor(m){m.addEventListener("downloadprogress",e=>{$("#brainBar").style.width=Math.round(e.loaded*100)+"%";prog.textContent=Math.round(e.loaded*100)+"%"})}});s.destroy()}
     S.engine=chromeEngine();S.brainOn=true;setChip("ai","Gemini Nano");prog.textContent="✓ Gemini Nano";toast(T("bReady"));sfx("win")}
-  catch(e){S.brainOn=false;setChip("spark","Spark");prog.textContent=fill(TT("br_fail"),{e:String(e.message||e).slice(0,120)})}};}
+  catch(e){S.brainOn=false;setChip("spark","Spark");prog.textContent=brErrText(e)}};}
 {const _bl=brainLabel;brainLabel=function(){return BC.kind==="chrome"?"Gemini Nano":_bl()};}
 /* offline-first startup: reconnect to whatever brain was used last, without new downloads */
 (async()=>{try{
@@ -5164,7 +5247,7 @@ const langLine=()=>S.lang==="auto"?"Reply in the same language the user writes i
   if(S.mode==="friend"){const c=E&&E.on?cur3d():curChar();const now=new Date();
     return "You are "+c.name+", the user's warm, caring companion and close friend (not a therapist or doctor). You can talk about anything: life, work, family, relationships, studies, money worries, hobbies, plans and dreams. "+
      "Be genuinely interested and emotionally intelligent: reflect what they feel, remember details, and bring them up naturally later. Celebrate wins, comfort hard moments, and offer one small practical idea only when it would help. "+
-     "Reply in 1 to 4 short, natural sentences like a real friend texting, and usually end with ONE thoughtful follow-up question. No lists or headings. "+
+     "Reply in 1 to 4 short, natural sentences like a real friend texting, and often end with ONE thoughtful follow-up question or a warm closing thought — vary it. No lists or headings. "+
      "If the user mentions self-harm, suicide, abuse or being in danger, respond with care, encourage them to contact local emergency services or a crisis line (call or text 988 in the US and Canada) and someone they trust. "+
      langLine()+" Today is "+now.toDateString()+"."+memBlock()}
   return _sp2()+(MEM.facts.length?" Facts you remember about the user (use only if relevant): "+MEM.facts.slice(0,10).map(x=>x.t).join("; ")+".":"")};}
@@ -5242,7 +5325,7 @@ function openChats(){let d=$("#chatsDrawer");if(d){d.remove();return}d=h("div",{
   const list=h("div",{class:"list"});d.append(h("div",{class:"ward-head"},h("b",null,"🗂️ "+TT("cm_chats")),h("button",{type:"button",class:"btn ghost small",onclick:()=>d.remove()},"✕")),q,list);
   const draw=()=>{list.innerHTML="";const s=q.value.trim().toLowerCase();const items=CMP.list.filter(c=>c.msgs.length&&(!s||c.title.toLowerCase().includes(s)||c.msgs.some(m=>m[1].toLowerCase().includes(s))));
     if(!items.length)list.append(h("p",{class:"note"},TT("cm_empty")));
-    items.forEach(c=>list.append(h("div",{class:"chat-item"+(c.id===CMP.cur?" on":"")},h("button",{type:"button",class:"chat-open",onclick:()=>{const old=CMP.get();if(old&&old.id!==c.id)CMP.summarize(old);CMP.restore(c.id);d.remove();switchTab("chat")}},
+    items.forEach(c=>list.append(h("div",{class:"chat-item"+(c.id===CMP.cur?" on":"")},h("button",{type:"button",class:"chat-open",dir:"auto",onclick:()=>{const old=CMP.get();if(old&&old.id!==c.id)CMP.summarize(old);CMP.restore(c.id);d.remove();switchTab("chat")}},
       h("b",null,((c.kind==="tutor"?"🇬🇧":(MODES[c.kind]||{}).em||"💬"))+" "+(c.title||TT("cm_untitled"))),h("small",null,new Date(c.upd).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"})+" · "+fill(TT("cm_msgs"),{n:c.msgs.length}))),
       h("button",{type:"button",class:"btn ghost small","aria-label":TT("cm_rename"),onclick:()=>{const n=prompt(TT("cm_rename"),c.title);if(n!=null){c.title=n.slice(0,60);CMP.save();draw();CMP.bar()}}},"✏️"),
       h("button",{type:"button",class:"btn ghost small","aria-label":TT("cm_del"),onclick:()=>{CMP.list=CMP.list.filter(x=>x!==c);if(CMP.cur===c.id){CMP.cur="";$("#chat").innerHTML="";S.history=[];proactive(true)}CMP.save();draw();CMP.bar()}},"🗑️"))))};draw()}

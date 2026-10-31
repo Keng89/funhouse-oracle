@@ -710,34 +710,21 @@ function sysPrompt(){
   const spice=["Keep humor very gentle.","Be silly and playful.","Be wildly absurd and surreal, but always clean and kind."][S.spice];
   const lang=S.lang==="auto"?"Reply in the same language the user writes in (most recent: "+AI_NAME[S.cur]+").":"Always reply in "+AI_NAME[S.lang]+".";
   const likes=S.likes.length?" Things the user likes: "+S.likes.join(", ")+". Mention them only when it fits naturally.":"";
-  return m.sys+" "+spice+" "+lang+" The user's name is "+userName()+"."+likes+" Rules: reply in 1 to 3 short sentences, stay PG and kind, never mean, never give dangerous advice. If the user seems sad, comfort them first. Always end with one short playful question back to the user, like a real conversation.";
+  return m.sys+" "+spice+" "+lang+" The user's name is "+userName()+"."+likes+" Rules: reply in 1 to 3 short sentences, stay PG and kind, never mean, never give dangerous advice. If the user seems sad, comfort them first. Often end with a short playful question or a warm closing line — vary it, so it feels like a real conversation, not a script.";
 }
-async function loadBrain(){
-  const btn=$("#loadBrain");
-  if(!navigator.gpu){$("#brainNote").textContent=T("bNoGpu");return}
-  btn.disabled=true;setChip("load",T("bLoading"));
-  try{
-    const webllm=await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.78/+esm");
-    const model=$("#modelSel").value;
-    S.engine=await webllm.CreateMLCEngine(model,{initProgressCallback:p=>{$("#brainBar").style.width=Math.round((p.progress||0)*100)+"%";$("#brainProg").textContent=p.text||T("bLoading")}});
-    S.brainOn=true;store.set("model",model);setChip("ai","AI");$("#brainProg").textContent="✓ "+model.split("-q4")[0];toast(T("bReady"));sfx("win");
-  }catch(e){S.brainOn=false;setChip("spark","Spark");$("#brainNote").textContent=T("bErr");$("#brainProg").textContent="—"}
-  finally{btn.disabled=false}
-}
+/* v20 (audit m15): the original loadBrain (web-llm 0.2.78) and aiReply
+   (max_tokens:200) that used to live here were DEAD — src/js/06 replaces both
+   unconditionally at load (and rebinds #loadBrain.onclick in buildBrainPanel),
+   and every caller resolves the globals at call time. Removed so nobody
+   patches the wrong copy again. The live versions are in src/js/06. */
 function setChip(kind,label){$("#brainDot").className="dot"+(kind==="ai"?" ai":kind==="load"?" load":"");$("#brainLabel").textContent=label}
-async function aiReply(bubble){
-  const msgs=[{role:"system",content:sysPrompt()},...S.history.slice(-10)];let out="";
-  const chunks=await S.engine.chat.completions.create({messages:msgs,stream:true,temperature:0.95,max_tokens:200});
-  for await(const c of chunks){out+=c.choices[0]?.delta?.content||"";bubble.textContent=out;scrollDown()}
-  return out.trim();
-}
 
 /* ================= chat UI ================= */
 const chatEl=$("#chat");let lastUser="";
 function scrollDown(){const st=$("#stage");st.scrollTop=st.scrollHeight}
 function addMsg(who,text){
   const row=document.createElement("div");row.className="msg "+(who==="me"?"me":"bot");
-  const b=document.createElement("div");b.className="bubble";b.textContent=text;
+  const b=document.createElement("div");b.className="bubble";b.dir="auto";b.textContent=text; /* v20 (m3): RTL replies render in the right direction */
   if(who!=="me"){
     const av=document.createElement("div");av.className="avatar face";av.innerHTML=faceSVG(curChar());av.title=curChar().name+" · "+MODES[S.mode].em;row.append(av);
     const wrap=document.createElement("div");wrap.className="bwrap";wrap.append(b);
@@ -762,10 +749,15 @@ function setChips(list){
   (list&&list.length?list:defaultChips()).forEach(it=>{const o=typeof it==="string"?{t:it,c:null}:it;
     const b=document.createElement("button");b.type="button";b.className="chip";b.textContent=o.t;b.onclick=()=>o.c?command(o.c,o.t):send(o.t);c.append(b)});
 }
-function oracle(text,chips){addMsg("bot",text);S.history.push({role:"assistant",content:text});speak(text);setChips(chips);sfx("blip2");talk(text)}
+/* v20 (m2): #chat is no longer a live region (streaming rewrote it per token
+   and screen readers re-announced the whole reply). Final texts are announced
+   ONCE here instead, via the visually-hidden #srLive region. */
+function srSay(t){const el=$("#srLive");if(!el||!t)return;el.textContent="";setTimeout(()=>{el.textContent=t},40)}
+function oracle(text,chips){addMsg("bot",text);S.history.push({role:"assistant",content:text});srSay(text);speak(text);setChips(chips);sfx("blip2");talk(text)}
 function typing(){const row=document.createElement("div");row.className="msg bot";row.innerHTML='<div class="avatar face">'+faceSVG(curChar())+'</div><div class="bubble typing"><span></span><span></span><span></span></div>';chatEl.append(row);scrollDown();mascot("think");return row}
 
 function command(c,label){
+  if(c==="continue"){if(typeof continueReply==="function")continueReply();return} /* v20 (M2) */
   if(c==="game"){switchTab("games");return}
   if(c==="wish"&&!S.game){switchTab("wish");$("#wishInput").focus();return}
   addMsg("me",label);lastUser=label;S.history.push({role:"user",content:label});sfx("blip");
@@ -887,6 +879,7 @@ function translateRequest(t){
   const code=LANG_ALIAS[tm[1]];if(!code)return null;
   if(!/\b(say|translate|translation|how do you say|what is|whats|what does|mean|means)\b/.test(n))return null; /* a translation cue must be present */
   let phraseRaw=null;const q=(t||"").match(/['"“”‘’]([^'"“”‘’]{1,80})['"“”‘’]/);if(q)phraseRaw=q[1].trim();
+  if(!phraseRaw){const cm=(t||"").match(new RegExp("\\b(?:in|to|into) ("+ALIAS_RE+")\\s*[:：]\\s*(.{1,200})$","i"));if(cm)phraseRaw=cm[2].trim()} /* v20 (M6): "translate to Spanish: <text>" */
   if(!phraseRaw){
     phraseRaw=n.replace(new RegExp("\\s+(?:in|to|into) ("+ALIAS_RE+")( please| por favor)?$"),"").replace(/^(please\s+)?(how do you say|how to say|can you say|could you say|say|translate|translation of|what is|whats|what does|tell me)\s+/,"").replace(/\s+(mean|means)$/,"").trim();
   }
@@ -995,8 +988,17 @@ async function send(raw,already){
   try{
     if(S._repeatAck){const r=S._repeatAck;S._repeatAck=null;ty.remove();if(r.good)oracle(TT("trPraise"));else{oracle(fill(TT("trRetry"),{t:r.tr.txt}));if(S.voice)speakAs(curChar(),r.tr.txt,null,r.tr.code)}return}
     if(S._transReq){const q=S._transReq;S._transReq=null;ty.remove(); /* translation = a mini-lesson, conversation stays pinned */
+      /* v20 (M6): "translate this/that" means the last thing said — resolve it */
+      if(q.phraseNorm==="this"||q.phraseNorm==="that"||q.phraseNorm==="it"){
+        let prev="";for(let i=S.history.length-1;i>=0;i--){if(S.history[i].role==="assistant"){prev=S.history[i].content;break}}
+        if(!prev)for(let i=S.history.length-2;i>=0;i--){if(S.history[i].role==="user"){prev=S.history[i].content;break}}
+        if(prev){q.phraseRaw=prev.slice(0,500);q.phraseNorm=langNorm(prev)}}
       let txt=trBookLookup(q);
-      if(!txt&&S.brainOn&&S.engine&&typeof quickAI==="function")txt=await quickAI("Translate the following text into "+(REG_NAME[q.code]||q.code)+". Reply with ONLY the translation, no quotes, no explanation: \""+q.phraseRaw+"\"");
+      /* v20 (M6): then Chrome's on-device Translator (any pair), then the brain
+         with a translation-sized token cap — quickAI's 80 tokens truncated
+         paragraph translations mid-sentence. */
+      if(!txt&&typeof trOnDevice==="function")txt=await trOnDevice(q.phraseRaw,replyLang(),q.code);
+      if(!txt&&S.brainOn&&S.engine&&typeof translateAI==="function")txt=await translateAI(q.phraseRaw,q.code);
       if(txt){let disp=fill(TT("trLead"),{n:langNameOf(q.code)})+" “"+txt+"”"+trTeachLines(q);const noV=(typeof VOICES!=="undefined"&&VOICES.length&&typeof voicesFor==="function"&&!voicesFor(q.code).length);if(noV)disp+=" "+TT("trNoVoice");addMsg("bot",disp);S.history.push({role:"assistant",content:disp});mascot("talk");lastTr={txt,code:q.code};if(S.voice)speakAs(curChar(),txt,null,q.code)}
       else oracle(fill(TT("trCant"),{p:q.phraseRaw}));
       setChips();return}
@@ -1005,7 +1007,9 @@ async function send(raw,already){
     if(S.brainOn&&S.engine){
       captureFacts(t);ty.remove();const b=addMsg("bot","");mascot("talk");
       const out=await aiReply(b);const fin=out||sparkReply(t);b.textContent=fin;
-      S.history.push({role:"assistant",content:fin});speak(fin);setChips();sfx("blip2");talk(fin);
+      S.history.push({role:"assistant",content:fin});srSay(fin);speak(fin);
+      /* v20 (M2): a long reply cut off mid-sentence gets a Continue chip */
+      setChips(out&&typeof looksCut==="function"&&looksCut(fin)?[{t:TT("contChip"),c:"continue"},...defaultChips()]:null);sfx("blip2");talk(fin);
     } else {
       await new Promise(r=>setTimeout(r,420+Math.random()*480));ty.remove();oracle(sparkReply(t));
     }
@@ -1144,7 +1148,7 @@ function speakAs(c,text,after){
   }catch(e){if(after)after()}
 }
 function setTalk(on){
-  S.talk=on;$("#talkBtn").classList.toggle("talk-on",on);$("#talkSw").setAttribute("aria-checked",on);
+  S.talk=on;const tb=$("#talkBtn");tb.classList.toggle("talk-on",on);tb.setAttribute("aria-pressed",on?"true":"false");tb.title=TT("talkModeN");$("#talkSw").setAttribute("aria-checked",on); /* v20 (M8): the button now says what state it is in */
   if(!on){micStop(false);toast(T("talkOff"));return}
   if(!SR){toast(T("micOff"));}else toast(T("talkOn"));
   if(SR&&!(window.speechSynthesis&&speechSynthesis.speaking))listen();
@@ -1207,7 +1211,7 @@ function micSpeaking(){ /* is the companion's voice playing right now? (any engi
 }
 function micState(){ /* the visible session state: button + hint bar, never silent */
   const b=$("#micBtn");
-  if(b){b.classList.toggle("rec",!!rec);b.classList.toggle("von",micOn&&!rec&&!micDead);b.classList.toggle("dead",micOn&&micDead);b.setAttribute("aria-pressed",micOn?"true":"false")}
+  if(b){b.classList.toggle("rec",!!rec);b.classList.toggle("von",micOn&&!rec&&!micDead);b.classList.toggle("dead",micOn&&micDead);b.setAttribute("aria-pressed",micOn?"true":"false");b.title=micOn?(micDead?T("micStalled"):T("micLive")):""}
   const bar=$("#micHintBar");
   if(bar){bar.hidden=!micOn;if(micOn)bar.textContent=micDead?T("micStalled"):T("micVon")}
 }
@@ -1475,4 +1479,16 @@ $("#talkBtn").onclick=()=>setTalk(!S.talk);
 $("#talkSw").onclick=()=>setTalk(!S.talk);
 $("#voiceSel").onchange=e=>{S.voiceName=e.target.value;store.set("voiceName",S.voiceName);speakAs(curChar(),fill(HI_IM[replyLang()]||HI_IM.en,{n:curChar().name}))};
 if("speechSynthesis" in window){loadVoices();try{speechSynthesis.addEventListener("voiceschanged",loadVoices)}catch(e){speechSynthesis.onvoiceschanged=loadVoices}}
+/* ===== v20 (M4): keep the composer above the mobile keyboard =====
+   iOS Safari / installed PWAs shrink the visual viewport when the keyboard
+   opens but leave the layout viewport (and .app{height:100%}) untouched —
+   the composer and newest messages ended up hidden behind the keyboard.
+   While the keyboard is up, pin .app to the visual viewport height so the
+   flex column reflows and the composer stays visible; restore on close. */
+if(window.visualViewport){const vv=window.visualViewport;let kbT=null;
+  const fit=()=>{const app=$(".app");if(!app)return;const kb=innerHeight-vv.height-vv.offsetTop>60;
+    app.style.height=kb?vv.height+"px":"";
+    if(kb){clearTimeout(kbT);kbT=setTimeout(scrollDown,60)}};
+  vv.addEventListener("resize",fit);vv.addEventListener("scroll",fit);
+  $("#input").addEventListener("focus",()=>setTimeout(()=>{fit();scrollDown()},80));}
 /* init runs at the end of the extension script */

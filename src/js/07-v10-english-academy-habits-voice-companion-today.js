@@ -352,6 +352,16 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(M
 const TRC={};
 async function trNative(text){const to=natLang();if(!to||!text)return "";const tl={yue:"zh-Hant",zh:"zh"}[to]||to;
   try{if(!("Translator" in self))return "";if(!TRC[tl]){const av=await Translator.availability({sourceLanguage:"en",targetLanguage:tl});if(av==="unavailable")return "";TRC[tl]=await Translator.create({sourceLanguage:"en",targetLanguage:tl})}return await TRC[tl].translate(text)}catch(e){return ""}}
+/* v20 (M6): the same on-device Translator, but for ANY pair — the chat
+   translation path in send() uses it before spending brain tokens. "" on any
+   failure (API absent, pair unavailable, model not downloaded). */
+const TRD={};
+async function trOnDevice(text,from,to){if(!text||!from||!to||from===to)return "";
+  const fl={yue:"zh-Hant",zh:"zh"}[from]||(typeof LANG_TAG!=="undefined"&&LANG_TAG[from])||from,tl={yue:"zh-Hant",zh:"zh"}[to]||(typeof LANG_TAG!=="undefined"&&LANG_TAG[to])||to;
+  if(fl===tl)return "";
+  try{if(!("Translator" in self))return "";const k=fl+">"+tl;
+    if(!TRD[k]){const av=await Translator.availability({sourceLanguage:fl,targetLanguage:tl});if(av==="unavailable")return "";TRD[k]=await Translator.create({sourceLanguage:fl,targetLanguage:tl})}
+    return await TRD[k].translate(text)}catch(e){return ""}}
 function wordNative(w){return natLang()==="vi"?(w[3]||""):""}
 /* English voice for the academy, slower for beginners */
 function enSay(text,after,slow){const c=Object.assign({},E&&E.on?cur3d():curChar());c.rate=(c.rate||1)*(slow?.8:(["A0","A1"].includes(ACD.lv||"A0")?.88:1));speakAs(c,text,after,"en")}
@@ -578,6 +588,9 @@ async function renderWordsX(A){
     h("button",{type:"button",class:"ac-opt ok",onclick:()=>{ACD.seen[w[0]]=1;acSrsAdd(w[0],{w:w[0],def:w[3],ex:w[4],lv:w[2]});saveACD();HB.add(1,"word");HB.ev("words");X.i++;renderAcad()}},"＋ "+TT("ac_learn"))));
 }
 async function quickAI(prompt){try{const it=await S.engine.chat.completions.create({messages:[{role:"user",content:prompt}],max_tokens:80,temperature:.3,stream:true});let o="";for await(const c of it)o+=c.choices[0]?.delta?.content||"";return cleanAI(o)}catch(e){return ""}}
+/* v20 (M6/M2): translation through the brain with a translation-sized cap —
+   quickAI's 80 tokens cut paragraph translations off mid-sentence. */
+async function translateAI(text,code){try{const it=await S.engine.chat.completions.create({messages:[{role:"user",content:"Translate the following text into "+((typeof REG_NAME!=="undefined"&&REG_NAME[code])||(typeof AI_NAME!=="undefined"&&AI_NAME[code])||code)+". Reply with ONLY the translation, no quotes, no explanation: \""+text+"\""}],max_tokens:600,temperature:.2,stream:true});let o="";for await(const c of it)o+=c.choices[0]?.delta?.content||"";return cleanAI(o)}catch(e){return ""}}
 function renderTutorMenu(A){
   A.append(h("div",{class:"ac-lhead"},h("button",{type:"button",class:"btn ghost small",onclick:()=>{ACV.view="home";renderAcad()}},"✕"),h("b",null,"🗣️ "+TT("ac_tutor"))));
   if(!S.brainOn)A.append(h("div",{class:"panel"},h("p",{class:"note"},TT("ac_tutorNeed")),h("button",{type:"button",class:"btn",onclick:()=>{switchTab("me");setTimeout(()=>$("#brainKind")&&$("#brainKind").scrollIntoView({block:"center"}),100)}},"🧠 "+TT("ac_loadAI"))));
@@ -751,21 +764,36 @@ async function kkSpeak(c,text,after){const id=++VXQ.id;const parts=splitSent(tex
   for(let i=0;i<parts.length;i++){let a;try{a=await nextP}catch(e){break}if(id!==VXQ.id)return;if(i+1<parts.length)nextP=KK.tts.generate(parts[i+1],{voice,speed});
     const ac=audioCtx();const buf=ac.createBuffer(1,a.audio.length,a.sampling_rate);buf.copyToChannel(a.audio,0);await playBuffer(buf,id);if(id!==VXQ.id)return}
   if(after)after()}
-async function cloudSpeak(c,text,after){const id=++VXQ.id;
+async function cloudSpeak(c,text,after,lang){const id=++VXQ.id;
   try{let r;
     if(VX.cprov==="eleven"){r=await fetch("https://api.elevenlabs.io/v1/text-to-speech/"+encodeURIComponent(VX.elVoice)+"?output_format=mp3_44100_128",{method:"POST",headers:{"xi-api-key":VX.elKey,"content-type":"application/json"},body:JSON.stringify({text,model_id:"eleven_multilingual_v2"})})}
     else{const key=(BC.keys&&BC.keys.openai)||"";r=await fetch("https://api.openai.com/v1/audio/speech",{method:"POST",headers:{authorization:"Bearer "+key,"content-type":"application/json"},body:JSON.stringify({model:VX.cmodel,voice:c.g==="m"&&VX.cvoice==="nova"?"onyx":VX.cvoice,input:text,response_format:"mp3"})})}
     if(!r.ok)throw new Error(r.status);const ab=await r.arrayBuffer();if(id!==VXQ.id)return;const buf=await audioCtx().decodeAudioData(ab);await playBuffer(buf,id);if(id===VXQ.id&&after)after()}
-  catch(e){toast(fill(TT("vx_fail"),{e:String(e.message||e)}));browserSpeak(c,text,after,"en")}}
+  catch(e){toast(fill(TT("vx_fail"),{e:String(e.message||e)}));browserSpeak(c,text,after,lang||replyLang())}} /* v20 (M7): fall back in the reply's OWN language, not forced English */
+/* v20 (M3): browser speech used to send a whole reply as ONE utterance —
+   Chrome (remote voices) and iOS silently cut long utterances off
+   mid-sentence (bedtime stories were the worst hit). Now chunked with
+   splitSent + a per-utterance cap and queued sequentially, mirroring the
+   Kokoro path; VXQ.id is the cancellation token, like kkSpeak's. */
 function browserSpeak(c,text,after,l){
   if(!("speechSynthesis" in window)){if(after)after();return}
-  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const m=MODES[S.mode]||{pitch:1,rate:1};
-    u.pitch=Math.max(.1,Math.min(2,(c.pitch||1)*(1+(m.pitch-1)*.3)));u.rate=Math.max(.5,Math.min(1.6,(c.rate||1)*VX.speed*(1+(m.rate-1)*.5)));
-    u.lang=(LANGS[l]&&LANGS[l].b)||(typeof LANG_TAG!=="undefined"&&LANG_TAG[l])||"en-US";const v=pickVoice(c,l);if(v)u.voice=v; /* v19: registry tags beyond the original language list */
-    u.onstart=()=>{const el=$("#mascot");if(el){el.classList.remove("is-think","is-happy");el.classList.add("is-talk")}};
+  const id=++VXQ.id;const m=MODES[S.mode]||{pitch:1,rate:1};
+  const pitch=Math.max(.1,Math.min(2,(c.pitch||1)*(1+(m.pitch-1)*.3))),rate=Math.max(.5,Math.min(1.6,(c.rate||1)*VX.speed*(1+(m.rate-1)*.5)));
+  const lang=(LANGS[l]&&LANGS[l].b)||(typeof LANG_TAG!=="undefined"&&LANG_TAG[l])||"en-US";const v=pickVoice(c,l); /* v19: registry tags beyond the original language list */
+  const parts=[];splitSent(text).forEach(s=>{let r=s;while(r.length>180){let cut=r.lastIndexOf(" ",180);if(cut<60)cut=180;parts.push(r.slice(0,cut).trim());r=r.slice(cut).trim()}if(r)parts.push(r)});
+  if(!parts.length){if(after)after();return}
+  const el=$("#mascot");let i=0;
+  const step=()=>{if(id!==VXQ.id)return; /* a newer speak (or stop) superseded this queue */
+    if(i>=parts.length){if(el)el.classList.remove("is-talk");if(after)after();return}
+    const u=new SpeechSynthesisUtterance(parts[i++]);u.pitch=pitch;u.rate=rate;u.lang=lang;if(v)u.voice=v;
+    u.onstart=()=>{if(el){el.classList.remove("is-think","is-happy");el.classList.add("is-talk")}};
     u.onboundary=e=>{ST.wb=performance.now();ST.wl=Math.max(2,e.charLength||4);ST.hasWB=true};
-    u.onend=u.onerror=()=>{const el=$("#mascot");if(el)el.classList.remove("is-talk");if(after)after()};
-    speechSynthesis.speak(u);if(stageVisible())ST.talkUntil=performance.now()+600}catch(e){if(after)after()}}
+    let done=false;const fin=()=>{if(done)return;done=true;if(id===VXQ.id)step()};
+    u.onend=fin;u.onerror=fin;
+    try{speechSynthesis.speak(u)}catch(e){if(after)after()}};
+  try{speechSynthesis.cancel()}catch(e){}
+  if(stageVisible())ST.talkUntil=performance.now()+600;
+  step()}
 /* the one speak entry point for every character, now with a language override */
 speakAs=function(c,text,after,lang){
   if(typeof PH!=="undefined"&&PH.active&&(c===curChar()||c===cur3d()))c={g:PH.cur.g,pitch:PH.cur.pitch,rate:1,name:PH.cur.name,id:PH.cur.id};
@@ -775,7 +803,7 @@ speakAs=function(c,text,after,lang){
   stopAudio();try{speechSynthesis.cancel()}catch(e){}
   if(!clean){if(after)after();return}
   if(VX.engine==="kokoro"&&l==="en"){if(KK.ready)return kkSpeak(c,clean,after);if(store.get("kkCached",false)&&wasmOK&&!KK.loading)kkLoad()}
-  if(VX.engine==="cloud"&&(VX.cprov==="eleven"?VX.elKey:(BC.keys&&BC.keys.openai)))return cloudSpeak(c,clean,after);
+  if(VX.engine==="cloud"&&(VX.cprov==="eleven"?VX.elKey:(BC.keys&&BC.keys.openai)))return cloudSpeak(c,clean,after,l);
   browserSpeak(c,clean,after,l);
 };
 /* settings panel */
@@ -863,7 +891,7 @@ function chromeEngine(){const lang=["en","es","fr","de","ja"].includes(replyLang
     if(a==="unavailable"){prog.textContent=TT("br_chromeNo");return}
     setChip("load",T("bLoading"));if(a!=="available"){prog.textContent=T("bLoading");const s=await LanguageModel.create({monitor(m){m.addEventListener("downloadprogress",e=>{$("#brainBar").style.width=Math.round(e.loaded*100)+"%";prog.textContent=Math.round(e.loaded*100)+"%"})}});s.destroy()}
     S.engine=chromeEngine();S.brainOn=true;setChip("ai","Gemini Nano");prog.textContent="✓ Gemini Nano";toast(T("bReady"));sfx("win")}
-  catch(e){S.brainOn=false;setChip("spark","Spark");prog.textContent=fill(TT("br_fail"),{e:String(e.message||e).slice(0,120)})}};}
+  catch(e){S.brainOn=false;setChip("spark","Spark");prog.textContent=brErrText(e)}};}
 {const _bl=brainLabel;brainLabel=function(){return BC.kind==="chrome"?"Gemini Nano":_bl()};}
 /* offline-first startup: reconnect to whatever brain was used last, without new downloads */
 (async()=>{try{
@@ -935,7 +963,7 @@ const langLine=()=>S.lang==="auto"?"Reply in the same language the user writes i
   if(S.mode==="friend"){const c=E&&E.on?cur3d():curChar();const now=new Date();
     return "You are "+c.name+", the user's warm, caring companion and close friend (not a therapist or doctor). You can talk about anything: life, work, family, relationships, studies, money worries, hobbies, plans and dreams. "+
      "Be genuinely interested and emotionally intelligent: reflect what they feel, remember details, and bring them up naturally later. Celebrate wins, comfort hard moments, and offer one small practical idea only when it would help. "+
-     "Reply in 1 to 4 short, natural sentences like a real friend texting, and usually end with ONE thoughtful follow-up question. No lists or headings. "+
+     "Reply in 1 to 4 short, natural sentences like a real friend texting, and often end with ONE thoughtful follow-up question or a warm closing thought — vary it. No lists or headings. "+
      "If the user mentions self-harm, suicide, abuse or being in danger, respond with care, encourage them to contact local emergency services or a crisis line (call or text 988 in the US and Canada) and someone they trust. "+
      langLine()+" Today is "+now.toDateString()+"."+memBlock()}
   return _sp2()+(MEM.facts.length?" Facts you remember about the user (use only if relevant): "+MEM.facts.slice(0,10).map(x=>x.t).join("; ")+".":"")};}
@@ -1013,7 +1041,7 @@ function openChats(){let d=$("#chatsDrawer");if(d){d.remove();return}d=h("div",{
   const list=h("div",{class:"list"});d.append(h("div",{class:"ward-head"},h("b",null,"🗂️ "+TT("cm_chats")),h("button",{type:"button",class:"btn ghost small",onclick:()=>d.remove()},"✕")),q,list);
   const draw=()=>{list.innerHTML="";const s=q.value.trim().toLowerCase();const items=CMP.list.filter(c=>c.msgs.length&&(!s||c.title.toLowerCase().includes(s)||c.msgs.some(m=>m[1].toLowerCase().includes(s))));
     if(!items.length)list.append(h("p",{class:"note"},TT("cm_empty")));
-    items.forEach(c=>list.append(h("div",{class:"chat-item"+(c.id===CMP.cur?" on":"")},h("button",{type:"button",class:"chat-open",onclick:()=>{const old=CMP.get();if(old&&old.id!==c.id)CMP.summarize(old);CMP.restore(c.id);d.remove();switchTab("chat")}},
+    items.forEach(c=>list.append(h("div",{class:"chat-item"+(c.id===CMP.cur?" on":"")},h("button",{type:"button",class:"chat-open",dir:"auto",onclick:()=>{const old=CMP.get();if(old&&old.id!==c.id)CMP.summarize(old);CMP.restore(c.id);d.remove();switchTab("chat")}},
       h("b",null,((c.kind==="tutor"?"🇬🇧":(MODES[c.kind]||{}).em||"💬"))+" "+(c.title||TT("cm_untitled"))),h("small",null,new Date(c.upd).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"})+" · "+fill(TT("cm_msgs"),{n:c.msgs.length}))),
       h("button",{type:"button",class:"btn ghost small","aria-label":TT("cm_rename"),onclick:()=>{const n=prompt(TT("cm_rename"),c.title);if(n!=null){c.title=n.slice(0,60);CMP.save();draw();CMP.bar()}}},"✏️"),
       h("button",{type:"button",class:"btn ghost small","aria-label":TT("cm_del"),onclick:()=>{CMP.list=CMP.list.filter(x=>x!==c);if(CMP.cur===c.id){CMP.cur="";$("#chat").innerHTML="";S.history=[];proactive(true)}CMP.save();draw();CMP.bar()}},"🗑️"))))};draw()}
