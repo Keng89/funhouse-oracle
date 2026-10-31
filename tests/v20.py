@@ -1,4 +1,4 @@
-import asyncio, json
+import asyncio, json, os
 from playwright.async_api import async_playwright
 
 # v20 fixes from the Phase-1 audit: (M2) token cap 260 -> 512 + Continue chip
@@ -29,7 +29,8 @@ LONG = ("The little fox ran through the pine forest and over the silver river, p
 CONT = "…and at last it curled up under the oldest oak and slept soundly."
 
 async def main():
-    assert "fho-v20" in open("sw.js", encoding="utf-8").read(), "sw.js version not bumped"
+    sw_path=os.path.join(os.path.dirname(os.path.abspath(__file__)),"..","sw.js")
+    assert "fho-v20" in open(sw_path, encoding="utf-8").read(), "sw.js version not bumped"
     async with async_playwright() as p:
         b=await p.chromium.launch(args=["--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"])
         pg=await b.new_page(viewport={"width":390,"height":844},device_scale_factor=2)
