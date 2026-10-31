@@ -1654,6 +1654,7 @@ function command(c,label){
   send(label,true);
 }
 async function send(raw,already){
+  if(raw==null&&micOn)micStop(false,true);
   const t=(raw??$("#input").value).trim();if(!t||S.busy)return;
   if(!already){$("#input").value="";autoGrow();addMsg("me",t);lastUser=t;S.history.push({role:"user",content:t});sfx("blip")}
   S.stats.msgs++;touchStreak();saveStats();
@@ -1711,8 +1712,8 @@ const CHAR_TAGS={en:{boy:"Boy",girl:"Girl",teenBoy:"Teen boy",teenGirl:"Teen gir
   fr:{boy:"Garçon",girl:"Fille",teenBoy:"Ado",teenGirl:"Ado",man:"Homme",woman:"Femme",grandpa:"Papi",grandma:"Mamie",robot:"Robot",ghost:"Fantôme"},
   zh:{boy:"男孩",girl:"女孩",teenBoy:"少年",teenGirl:"少女",man:"男士",woman:"女士",grandpa:"爷爷",grandma:"奶奶",robot:"机器人",ghost:"友善幽灵"}};
 const HI_IM={en:"Hi! I'm {n}. Want to chat with me?",vi:"Xin chào! Mình là {n}. Nói chuyện với mình nhé?",es:"¡Hola! Soy {n}. ¿Charlamos?",fr:"Salut ! Je suis {n}. On discute ?",zh:"你好！我是{n}。和我聊聊天吧？"};
-Object.assign(PACKS.en.ui,{chars:"Talking characters",charsN:"Pick who talks to you. Each one has its own face and voice. Tap ▶ to hear them.",sysVoice:"Device voice",sysVoiceN:"Auto picks a voice that fits the character and your language. Voices come from your phone or computer.",autoVoice:"Auto (match character)",talkMode:"Hands-free talk mode",talkModeN:"The character speaks, then listens for your answer, like a phone call.",talkOn:"Talk mode on. Speak after the character finishes.",talkOff:"Talk mode off",charNow:"Now talking: {n}"});
-Object.assign(PACKS.vi.ui,{chars:"Nhân vật biết nói",charsN:"Chọn người nói chuyện với bạn. Mỗi nhân vật có khuôn mặt và giọng riêng. Bấm ▶ để nghe thử.",sysVoice:"Giọng của thiết bị",sysVoiceN:"Tự động chọn giọng hợp với nhân vật và ngôn ngữ. Giọng có sẵn trên điện thoại hoặc máy tính của bạn.",autoVoice:"Tự động (hợp nhân vật)",talkMode:"Chế độ nói chuyện rảnh tay",talkModeN:"Nhân vật nói xong sẽ lắng nghe bạn trả lời, như gọi điện.",talkOn:"Đã bật nói chuyện rảnh tay. Hãy nói sau khi nhân vật nói xong.",talkOff:"Đã tắt nói chuyện rảnh tay",charNow:"Đang nói chuyện với: {n}"});
+Object.assign(PACKS.en.ui,{chars:"Talking characters",charsN:"Pick who talks to you. Each one has its own face and voice. Tap ▶ to hear them.",sysVoice:"Device voice",sysVoiceN:"Auto picks a voice that fits the character and your language. Voices come from your phone or computer.",autoVoice:"Auto (match character)",talkMode:"Hands-free talk mode",talkModeN:"The character speaks, then listens for your answer, like a phone call.",talkOn:"Talk mode on. Speak after the character finishes.",talkOff:"Talk mode off",charNow:"Now talking: {n}",micLive:"🎙️ Listening… just speak — tap 🎙️ to send."});
+Object.assign(PACKS.vi.ui,{chars:"Nhân vật biết nói",charsN:"Chọn người nói chuyện với bạn. Mỗi nhân vật có khuôn mặt và giọng riêng. Bấm ▶ để nghe thử.",sysVoice:"Giọng của thiết bị",sysVoiceN:"Tự động chọn giọng hợp với nhân vật và ngôn ngữ. Giọng có sẵn trên điện thoại hoặc máy tính của bạn.",autoVoice:"Tự động (hợp nhân vật)",talkMode:"Chế độ nói chuyện rảnh tay",talkModeN:"Nhân vật nói xong sẽ lắng nghe bạn trả lời, như gọi điện.",talkOn:"Đã bật nói chuyện rảnh tay. Hãy nói sau khi nhân vật nói xong.",talkOff:"Đã tắt nói chuyện rảnh tay",charNow:"Đang nói chuyện với: {n}",micLive:"🎙️ Đang nghe… cứ nói — chạm 🎙️ để gửi."});
 Object.assign(PACKS.es.ui,{chars:"Personajes que hablan",charsN:"Elige quién te habla. Cada uno tiene su cara y su voz. Toca ▶ para oírlos.",sysVoice:"Voz del dispositivo",autoVoice:"Auto (según personaje)",talkMode:"Modo manos libres",talkModeN:"El personaje habla y luego escucha tu respuesta.",talkOn:"Manos libres activado.",talkOff:"Manos libres desactivado",charNow:"Hablando con: {n}"});
 Object.assign(PACKS.fr.ui,{chars:"Personnages qui parlent",charsN:"Choisis qui te parle. Chacun a son visage et sa voix. Touche ▶ pour l'écouter.",sysVoice:"Voix de l'appareil",autoVoice:"Auto (selon le personnage)",talkMode:"Mode mains libres",talkModeN:"Le personnage parle, puis écoute ta réponse.",talkOn:"Mains libres activé.",talkOff:"Mains libres désactivé",charNow:"Tu parles avec : {n}"});
 Object.assign(PACKS.zh.ui,{chars:"会说话的角色",charsN:"选择和你说话的角色。每个都有自己的脸和声音。点 ▶ 试听。",sysVoice:"设备语音",autoVoice:"自动（匹配角色）",talkMode:"免提对话模式",talkModeN:"角色说完后会听你回答，就像打电话。",talkOn:"已开启免提对话。",talkOff:"已关闭免提对话",charNow:"正在对话：{n}"});
@@ -1812,7 +1813,7 @@ function speakAs(c,text,after){
 }
 function setTalk(on){
   S.talk=on;$("#talkBtn").classList.toggle("talk-on",on);$("#talkSw").setAttribute("aria-checked",on);
-  if(!on){try{rec&&rec.stop()}catch(e){}toast(T("talkOff"));return}
+  if(!on){micStop(false);toast(T("talkOff"));return}
   if(!SR){toast(T("micOff"));}else toast(T("talkOn"));
   if(SR&&!(window.speechSynthesis&&speechSynthesis.speaking))listen();
 }
@@ -1842,17 +1843,69 @@ function speak(text,force){
   speakAs(curChar(),text,()=>{if(S.talk&&!S.busy)setTimeout(listen,250)});
 }
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-let rec=null;
-function listen(){
-  if(!SR||rec)return;
-  try{rec=new SR();const l=S.tutor?S.tutor.lang:(S.game&&S.game.id==="practice"?S.game.lang:replyLang());rec.lang=(LANGS[l]&&LANGS[l].b)||navigator.language||"en-US";rec.interimResults=false;
-    rec.onresult=e=>{const t=e.results[0][0].transcript;if(t)send(t)};
-    rec.onerror=e=>{if(e&&(e.error==="not-allowed"||e.error==="service-not-allowed"||e.error==="audio-capture")){toast(T("micOff"));if(S.talk)setTalk(false)}};
-    rec.onend=()=>{rec=null;$("#micBtn").classList.remove("rec")};
-    rec.start();$("#micBtn").classList.add("rec");
-  }catch(e){rec=null;toast(T("micOff"))}
+let rec=null,micOn=false,micDone="",micBase="",micRestarts=0,micIdleT=null;
+function micTotal(){return ((micDone?micDone+" ":"")+((rec&&rec._fin)||"")).replace(/\s+/g," ").trim()}
+function micShow(interim){
+  const inp=$("#input");if(!inp)return;
+  const fin=micTotal();
+  inp.value=((micBase?micBase+" ":"")+(fin?fin+" ":"")+interim).trim();
+  autoGrow();
 }
-if(SR){$("#micBtn").hidden=false;$("#micBtn").onclick=()=>{if(rec){try{rec.stop()}catch(e){}return}listen()}}
+function micCleanup(keepText){
+  clearTimeout(micIdleT);micIdleT=null;rec=null;micDone="";micRestarts=0;
+  $("#micBtn").classList.remove("rec");
+  if(!keepText){const inp=$("#input");if(inp){inp.value=micBase;autoGrow()}}
+  micBase="";
+}
+function micSend(){
+  const t=((micBase?micBase+" ":"")+micTotal()).replace(/\s+/g," ").trim();
+  micOn=false;micCleanup();
+  if(t)send(t);
+}
+function micStop(sendIt,keepText){
+  if(!micOn&&!rec)return;
+  micOn=false;clearTimeout(micIdleT);micIdleT=null;
+  const r=rec;
+  if(r){if(sendIt)r._send=1;if(keepText)r._keep=1;try{r.stop()}catch(e){micDone=micTotal();rec=null;if(sendIt)micSend();else micCleanup(keepText)}}
+  else if(sendIt)micSend();else micCleanup(keepText);
+}
+function micStart(){
+  const r=new SR();rec=r;r._fin="";
+  const l=S.tutor?S.tutor.lang:(S.game&&S.game.id==="practice"?S.game.lang:replyLang());
+  r.lang=(LANGS[l]&&LANGS[l].b)||navigator.language||"en-US";
+  r.continuous=true;r.interimResults=true;
+  r.onresult=e=>{
+    if(rec!==r)return;
+    let fin="",interim="";
+    for(let i=0;i<e.results.length;i++){const res=e.results[i];if(res.isFinal)fin+=res[0].transcript+" ";else interim+=res[0].transcript+" "}
+    fin=fin.replace(/\s+/g," ").trim();
+    if(fin.length>r._fin.length){micRestarts=0;clearTimeout(micIdleT);micIdleT=setTimeout(()=>{if(micOn)micStop(true)},1400)}
+    r._fin=fin;
+    micShow(interim.replace(/\s+/g," ").trim());
+  };
+  r.onerror=e=>{
+    if(rec!==r)return;
+    if(e&&(e.error==="not-allowed"||e.error==="service-not-allowed"||e.error==="audio-capture")){micOn=false;toast(T("micOff"));if(S.talk)setTalk(false);else micStop(false)}
+  };
+  r.onend=()=>{
+    if(rec!==r)return;
+    if(r._send){micSend();return}
+    if(!micOn){micCleanup(r._keep);return}
+    micDone=micTotal();r._fin="";
+    if(micRestarts<6){micRestarts++;try{micStart();return}catch(e){}}
+    micOn=false;
+    if(micDone)micSend();else micCleanup();
+  };
+  r.start();
+  $("#micBtn").classList.add("rec");
+}
+function listen(hint){
+  if(!SR||micOn||rec)return;
+  micOn=true;micDone="";micRestarts=0;micBase=$("#input").value.trim();
+  try{micStart()}catch(e){micOn=false;rec=null;micCleanup();toast(T("micOff"));return}
+  if(hint)toast(T("micLive"));
+}
+if(SR){$("#micBtn").hidden=false;$("#micBtn").onclick=()=>{if(micOn){micStop(true);return}listen(true)}}
 
 /* ================= wishes & cards ================= */
 const WISH_IDEAS={en:["I wish my homework did itself","I wish I could teleport to the beach","I wish my cat could talk","I wish for unlimited pizza","I wish I was brave enough to start my business"],vi:["Ước gì bài tập tự làm xong","Ước gì mình dịch chuyển tới biển được","Ước gì con mèo biết nói","Ước có trà sữa miễn phí cả đời","Ước mình đủ can đảm để khởi nghiệp"],es:["Deseo que mi tarea se haga sola","Deseo teletransportarme a la playa","Deseo pizza ilimitada"],fr:["Je souhaite que mes devoirs se fassent tout seuls","Je souhaite me téléporter à la plage","Je souhaite des croissants illimités"],zh:["我希望作业能自己写完","我希望能瞬移到海边","我希望奶茶永远免费"]};
