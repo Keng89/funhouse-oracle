@@ -28,6 +28,12 @@ async def main():
           localStorage.setItem('fho_micHinted','true');localStorage.setItem('fho_voice','true')""")
         await pg.reload();await pg.wait_for_timeout(2500)
         ev=pg.evaluate
+        async def wait_js(expr,timeout=10000):
+            t=0
+            while t<timeout:
+                if await ev(f"!!({expr})"):return
+                await pg.wait_for_timeout(200);t+=200
+            raise TimeoutError(expr)
         print("mic visible:",await ev("!$('#micBtn').hidden"),"consent gone:",await ev("!$('#consentModal')"))
         # --- tap once: continuous + interim config, .rec state, live text in the input
         await pg.click("#micBtn");await pg.wait_for_timeout(200)
@@ -40,13 +46,16 @@ async def main():
         # --- auto-send ~1.4s after the last final segment
         await pg.wait_for_timeout(1800)
         print("auto-sent:",await ev("[...document.querySelectorAll('#chat .msg.me .bubble')].map(b=>b.textContent)"))
-        print("mic off after send:",await ev("[!$('#micBtn').classList.contains('rec'),$('#input').value]"))
-        await pg.wait_for_function("S.busy===false");await pg.wait_for_timeout(300)
-        # --- browser ends recognition on its own: restart, text folds across sessions
-        await pg.click("#micBtn");await pg.wait_for_timeout(200)
+        # v19 conversation mode: the session SURVIVES the auto-send (v18 ended it here)
+        n_after_send=await ev("__recs.length")
+        await wait_js("S.busy===false")
+        await wait_js(f"__recs.length>{n_after_send}",timeout=8000)
+        print("voice still on after send:",await ev("[micOn,$('#micBtn').classList.contains('rec'),!$('#micHintBar').hidden,$('#input').value]"))
+        # --- browser ends recognition on its own: the session restarts it (no new tap), text folds across runs
         n0=await ev("__recs.length")
         await ev(f"__recs[{n0-1}].emit([['restart test',true]])")
-        await ev(f"__recs[{n0-1}].end()");await pg.wait_for_timeout(200)
+        await ev(f"__recs[{n0-1}].end()")
+        await wait_js(f"__recs.length>{n0}",timeout=8000)
         print("restarted:",await ev(f"[__recs.length,{n0},document.querySelector('#micBtn').classList.contains('rec')]"))
         n1=await ev("__recs.length")
         await ev(f"__recs[{n1-1}].emit([['second part',true]])")
@@ -54,25 +63,27 @@ async def main():
         # --- tap again: stop + send what accumulated
         await pg.click("#micBtn");await pg.wait_for_timeout(400)
         print("tap-off sent:",await ev("[...document.querySelectorAll('#chat .msg.me .bubble')].map(b=>b.textContent).slice(-1)"))
-        await pg.wait_for_function("S.busy===false");await pg.wait_for_timeout(300)
+        await wait_js("S.busy===false");await pg.wait_for_timeout(300)
         # --- tap on, tap off, nothing said: no empty message
         before=await ev("document.querySelectorAll('#chat .msg.me').length")
         await pg.click("#micBtn");await pg.wait_for_timeout(150)
         await pg.click("#micBtn");await pg.wait_for_timeout(300)
         print("no empty send:",await ev(f"document.querySelectorAll('#chat .msg.me').length==={before}"),"mic off:",await ev("!$('#micBtn').classList.contains('rec')"))
-        # --- typed send while mic is on: sends once, mic stops, no restart
-        await pg.click("#micBtn");await pg.wait_for_timeout(150)
+        # --- typed send while voice is on: sends once; the session SURVIVES and resumes (v18 killed it)
+        await pg.click("#micBtn")
+        n_pre=await ev("__recs.length")
+        await wait_js(f"__recs.length>{n_pre}",timeout=8000)
         n2=await ev("__recs.length")
         await ev(f"__recs[{n2-1}].emit([['typed draft',true]])")
         await pg.click("#sendBtn");await pg.wait_for_timeout(600)
-        print("typed send once:",await ev("[...document.querySelectorAll('#chat .msg.me .bubble')].map(b=>b.textContent).slice(-1)"),
-              "no restart:",await ev(f"__recs.length==={n2}"),"mic off:",await ev("!$('#micBtn').classList.contains('rec')"))
-        await pg.wait_for_function("S.busy===false");await pg.wait_for_timeout(300)
-        # --- fatal error: mic off, talk off, no restart loop
-        await pg.click("#micBtn");await pg.wait_for_timeout(150)
+        print("typed send once:",await ev("[...document.querySelectorAll('#chat .msg.me .bubble')].map(b=>b.textContent).slice(-1)"))
+        await wait_js("S.busy===false")
+        await wait_js(f"__recs.length>{n2}",timeout=8000)
+        print("voice survives typed send:",await ev("[micOn,[...document.querySelectorAll('#chat .msg.me .bubble')].filter(b=>b.textContent==='typed draft').length]"))
+        # --- fatal error ends the session: mic off, talk off, hint gone, no restart loop
         n3=await ev("__recs.length")
-        await ev(f"__recs[{n3-1}].fail('not-allowed')");await pg.wait_for_timeout(400)
-        print("fatal stops:",await ev(f"[__recs.length==={n3},!$('#micBtn').classList.contains('rec'),S.talk]"))
+        await ev(f"__recs[{n3-1}].fail('not-allowed')");await pg.wait_for_timeout(600)
+        print("fatal stops:",await ev(f"[__recs.length==={n3},!micOn,!$('#micBtn').classList.contains('rec'),S.talk,$('#micHintBar').hidden]"))
         print("\n".join(errs[:15]) or "no errors")
         await b.close()
 asyncio.run(main())

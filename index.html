@@ -95,6 +95,11 @@ button:disabled{opacity:.5;cursor:default}
 .icon-btn{flex:0 0 44px;height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--felt-2);font-size:18px;display:grid;place-items:center}
 .send{background:var(--cherry);border-color:var(--cherry);color:#fff;font-family:var(--f-display);font-size:12px;flex-basis:64px}
 .icon-btn.rec{background:var(--cherry);animation:blink 1s infinite}
+.icon-btn.von{border-color:var(--brass);box-shadow:0 0 0 2px var(--brass) inset}
+.icon-btn.dead{opacity:.55;box-shadow:none}
+#micHintBar{padding-block:4px;text-align:center;font-size:12px;color:var(--brass);background:var(--felt);border-top:1px solid var(--line)}
+#langHintBar{padding-block:6px;text-align:center;font-size:12.5px;color:var(--ink);background:var(--felt);border-top:1px solid var(--line)}
+#langHintBar .btn{margin-left:6px;padding:2px 10px}
 
 .tabs{display:grid;grid-template-columns:repeat(6,1fr);border-top:2px solid var(--brass);background:var(--felt-2);padding-bottom:env(safe-area-inset-bottom,0px)}
 .tab{background:transparent;border:0;padding:8px 2px 7px;min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-family:var(--f-mono);letter-spacing:.4px;color:var(--muted);text-transform:uppercase}
@@ -602,7 +607,7 @@ body:has(#kidLock) .hb-modal{z-index:9700}.kid-lock-box{max-width:380px;text-ali
 .crisis-card .btn{align-self:flex-start;text-decoration:none}
 .dis-note{margin:14px 0 6px;font-size:12.5px;line-height:1.45;opacity:.9}
 .legal-foot{margin:22px 0 10px;text-align:center;font-size:12.5px;line-height:1.9}.legal-foot .note{margin-top:4px}
-body.nomic #micBtn,body.nomic #talkBtn,body.nomic .ac-mic{display:none!important}
+body.nomic #micBtn,body.nomic #talkBtn,body.nomic .ac-mic,body.nomic #micHintBar{display:none!important}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
 </style>
@@ -847,6 +852,8 @@ body.nomic #micBtn,body.nomic #talkBtn,body.nomic .ac-mic{display:none!important
     </section>
   </main>
 
+  <div id="micHintBar" class="pad" hidden>🎙️ Voice on — tap mic to stop</div>
+  <div id="langHintBar" class="pad" hidden><span id="langHintTxt"></span> <button type="button" id="langHintYes" class="btn small" aria-label="Switch language">✓</button> <button type="button" id="langHintNo" class="btn small ghost" aria-label="Keep current language">✕</button></div>
   <div class="composer pad" id="composer">
     <button class="icon-btn" id="stageBtn" type="button" aria-label="Show or hide the stage">🎭</button>
     <button class="icon-btn" id="talkBtn" type="button" aria-label="Hands-free talk mode">🗣️</button>
@@ -930,7 +937,7 @@ const navLang=(navigator.language||"en").slice(0,2).toLowerCase();
 const S={
   mode:store.get("mode","comic"),spice:store.get("spice",1),name:store.get("name",""),
   voice:store.get("voice",true),sound:store.get("sound",true),
-  lang:store.get("lang","auto"),cur:store.get("cur",LANGS[navLang]?navLang:"en"),
+  lang:store.get("lang","auto"),cur:store.get("cur",LANGS[navLang]?navLang:"en"),langTag:store.get("langTag",""),
   stats:Object.assign({laughs:0,msgs:0,wishes:0,riddles:0,games:0,streak:0,last:"",mind:0,daily:0,dailyLast:"",party:0,favs:0},store.get("stats",{})),
   wishes:store.get("wishes",[]),favs:store.get("favs",[]),likes:store.get("likes",[]),custom:store.get("custom",null),
   history:[],engine:null,brainOn:false,busy:false,game:null,awaiting:null,hinted:{}
@@ -1036,7 +1043,7 @@ en:{
  ui:{tagline:"Insert question · receive joy",tChat:"Chat",tGames:"Games",tWish:"Wish",tMe:"Me",ph:"Ask, wish, or just say hi…",send:"SEND",
   gTitle:"Arcade Games",gSub:"Pick one and the Oracle runs it in the chat. Works fully offline.",daily:"Today's Riddle",dailyD:"One new riddle every day. Keep your streak.",dailyDone:"Solved today ✓ Come back tomorrow.",
   wTitle:"The Wishing Slot",wSub:"Drop in a wish. The Genie grants it, with a twist, and prints you a card to keep.",wLabel:"Your wish",wPh:"I wish my homework did itself…",grant:"Grant my wish",surprise:"Surprise me",jar:"Wish jar",jarEmpty:"Your granted wishes land here.",
-  mTitle:"Settings & Stats",mSub:"Everything is saved only in this browser.",langL:"Language",langN:"Auto detects the language you type in. Full offline replies in English, Tiếng Việt, Español, Français and 中文. Load the AI brain to chat in every language.",
+  mTitle:"Settings & Stats",mSub:"Everything is saved only in this browser.",langL:"Language",langN:"Auto keeps your current language locked — it only suggests a switch, never changes on its own. Full offline replies in English, Tiếng Việt, Español, Français and 中文. Load the AI brain to chat in every language.",
   nameL:"What should the Oracle call you?",nameP:"Your name or nickname",spice:"Spice level",sp0:"Gentle",sp1:"Silly",sp2:"Unhinged",spN:"Unhinged is still clean. Just weirder.",
   voice:"Read replies aloud",voiceN:"Each mode gets its own voice pitch, in your language.",sound:"Arcade sounds",soundN:"Dings, blips and a tiny fanfare.",
   custom:"Create your own character",cEmoji:"Emoji",cName:"Name",cDesc:"Personality",cCatch:"Catchphrase",cSave:"Save character",cDel:"Delete",cNote:"Your character appears in the mode strip. With the AI brain it fully plays the role.",
@@ -1096,7 +1103,7 @@ vi:{
  ui:{tagline:"Gửi câu hỏi · nhận niềm vui",tChat:"Chat",tGames:"Trò chơi",tWish:"Điều ước",tMe:"Cài đặt",ph:"Hỏi, ước, hoặc chào một câu…",send:"GỬI",
   gTitle:"Khu trò chơi",gSub:"Chọn một trò, Oracle sẽ chơi cùng bạn ngay trong chat. Chạy hoàn toàn offline.",daily:"Câu đố hôm nay",dailyD:"Mỗi ngày một câu đố mới. Giữ chuỗi ngày nhé.",dailyDone:"Đã giải hôm nay ✓ Mai quay lại nhé.",
   wTitle:"Khe điều ước",wSub:"Gửi một điều ước. Thần đèn sẽ ban cho bạn kèm một cú twist, và in thẻ để bạn giữ.",wLabel:"Điều ước của bạn",wPh:"Ước gì bài tập tự làm xong…",grant:"Ban điều ước",surprise:"Ngẫu nhiên",jar:"Hũ điều ước",jarEmpty:"Các điều ước đã ban sẽ nằm ở đây.",
-  mTitle:"Cài đặt & thống kê",mSub:"Mọi thứ chỉ lưu trong trình duyệt này.",langL:"Ngôn ngữ",langN:"Tự động nhận diện ngôn ngữ bạn gõ. Trả lời offline đầy đủ bằng English, Tiếng Việt, Español, Français và 中文. Tải bộ não AI để chat bằng mọi ngôn ngữ.",
+  mTitle:"Cài đặt & thống kê",mSub:"Mọi thứ chỉ lưu trong trình duyệt này.",langL:"Ngôn ngữ",langN:"Tự động giữ nguyên ngôn ngữ hiện tại — chỉ gợi ý đổi chứ không tự đổi. Trả lời offline đầy đủ bằng English, Tiếng Việt, Español, Français và 中文. Tải bộ não AI để chat bằng mọi ngôn ngữ.",
   nameL:"Oracle nên gọi bạn là gì?",nameP:"Tên hoặc biệt danh",spice:"Độ lầy",sp0:"Nhẹ nhàng",sp1:"Lầy",sp2:"Siêu lầy",spN:"Siêu lầy vẫn lành mạnh. Chỉ kỳ quặc hơn.",
   voice:"Đọc to câu trả lời",voiceN:"Mỗi chế độ có giọng riêng, theo ngôn ngữ của bạn.",sound:"Âm thanh arcade",soundN:"Tiếng ding, blip và kèn mừng nho nhỏ.",
   custom:"Tạo nhân vật của bạn",cEmoji:"Emoji",cName:"Tên",cDesc:"Tính cách",cCatch:"Câu cửa miệng",cSave:"Lưu nhân vật",cDel:"Xoá",cNote:"Nhân vật hiện ở thanh chế độ. Với bộ não AI, nó nhập vai hoàn toàn.",
@@ -1653,12 +1660,204 @@ function command(c,label){
   if(c==="vent"){S.awaiting="vent";return oracle(say(s.ventOk,""),[])}
   send(label,true);
 }
+/* ======== v19 LANGUAGE LOCK ========
+   The conversation language is PINNED. In Auto mode, S.cur used to be
+   overwritten by detectLang() on EVERY message (one mis-heard 3-letter
+   utterance flipped the UI, the replies, the TTS voice and the mic's
+   language mid-conversation, and the flip was even saved). Detection may
+   now only SUGGEST: after 3 messages in a row detected as the same other
+   language, a one-time dismissible "Switch to …?" bar appears. S.cur
+   changes ONLY deliberately: picking a language in #langSel, or tapping
+   Switch on that bar (langPin). Everything downstream reads replyLang(),
+   so pinning S.cur pins replies + TTS voice + recognition.lang together. */
+let langSugD=null,langSugN=0,langSugOff=false,micLangFB=false,lastTr=null;
+function langSuggest(d){ /* detection feeds this; it never touches S.cur */
+  if(!d||!PACKS[d]){langSugD=null;langSugN=0;return}
+  if(d===S.cur){langSugD=null;langSugN=0;return}
+  if(langSugOff||document.body.classList.contains("kids"))return;
+  if(d===langSugD)langSugN++;else{langSugD=d;langSugN=1}
+  if(langSugN>=3){const bar=$("#langHintBar");if(bar){$("#langHintTxt").textContent=fill(TT("langSwitchAsk"),{n:(LANGS[d]&&LANGS[d].n)||d});bar.hidden=false}}
+}
+function langPin(d){ /* the deliberate re-pin: exactly what picking d in #langSel does — now for ANY registry language */
+  if(!d||!LANG_TAG[d])return;
+  S.lang=d;S.cur=d;S.langTag=LANG_TAG[d];store.set("lang",d);store.set("cur",d);store.set("langTag",S.langTag);
+  const sel=$("#langSel");if(sel)sel.value=d;
+  langSugD=null;langSugN=0;langSugOff=false;micLangFB=false;S._langNote=0;
+  const bar=$("#langHintBar");if(bar)bar.hidden=true;
+  applyUI();
+}
+{const y=$("#langHintYes"),n=$("#langHintNo");
+ if(y)y.onclick=()=>{if(langSugD)langPin(langSugD)};
+ if(n)n.onclick=()=>{langSugOff=true;langSugD=null;langSugN=0;const bar=$("#langHintBar");if(bar)bar.hidden=true};}
+/* Asking is the other deliberate switch: an explicit request in the message
+   itself — "Vietnamese please", "speak French", "switch to Spanish",
+   "nói tiếng Việt", "parle français", "habla español" — re-pins at once and
+   the companion confirms in the NEW language. Merely mentioning or asking
+   ABOUT a language ("how do you say hello in Vietnamese?", "teach me a
+   French word") never switches: question/learn phrasing is guarded out. */
+const LANG_ACK={en:"Okay — English it is! Let's keep chatting in English.",vi:"Được rồi — mình chuyển sang tiếng Việt nhé! Mình nghe đây.",es:"¡Perfecto! Cambiamos al español. ¡Sigamos en español!",fr:"D'accord — on passe au français ! Continuons en français.",zh:"好的,我们切换到中文!接下来用中文聊吧。",yue:"好,我哋轉用廣東話!繼續用廣東話傾偈啦。",pt:"Claro! Mudamos para português. Vamos continuar em português!",de:"Alles klar — wir wechseln zu Deutsch! Weiter geht's auf Deutsch.",it:"Va bene! Passiamo all'italiano. Continuiamo in italiano!",ja:"わかりました!日本語に切り替えますね。これから日本語で話しましょう。",ko:"알겠어요! 한국어로 바꿀게요. 한국어로 계속 얘기해요.",ru:"Хорошо! Переключаемся на русский. Продолжаем по-русски!"};
+function langNorm(s){return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/đ/g,"d").replace(/['’]/g,"").replace(/[^a-z0-9\s]/g," ").replace(/\s+/g," ").trim()}
+/* ===== v19: OPEN LANGUAGE REGISTRY — 118 languages =====
+   Any language the user names resolves to a BCP-47 tag: English names,
+   native names (Latin or native script), or ISO codes. The conversation
+   switch, the mic, TTS and translation all resolve through this table —
+   the app never answers that a language "isn't supported". */
+const LANG_REG=[
+["en","en-US","english"],["vi","vi-VN","vietnamese"],["es","es-ES","spanish|espanol"],["fr","fr-FR","french|francais"],["zh","zh-CN","chinese|mandarin"],["yue","zh-HK","cantonese"],["ja","ja-JP","japanese"],["ko","ko-KR","korean"],["de","de-DE","german|deutsch"],["pt","pt-BR","portuguese"],["it","it-IT","italian"],["ru","ru-RU","russian"],["ar","ar-SA","arabic"],["hi","hi-IN","hindi"],["th","th-TH","thai"],["id","id-ID","indonesian|bahasa indonesia"],["tl","tl-PH","tagalog|filipino"],["tr","tr-TR","turkish"],["pl","pl-PL","polish"],["nl","nl-NL","dutch|nederlands"],["km","km-KH","khmer"],["uk","uk-UA","ukrainian"],["sv","sv-SE","swedish"],["da","da-DK","danish"],["no","nb-NO","norwegian|norsk"],["fi","fi-FI","finnish|suomi"],["el","el-GR","greek"],["cs","cs-CZ","czech"],["sk","sk-SK","slovak"],["sl","sl-SI","slovenian"],["hr","hr-HR","croatian"],["sr","sr-RS","serbian"],["bs","bs-BA","bosnian"],["mk","mk-MK","macedonian"],["bg","bg-BG","bulgarian"],["ro","ro-RO","romanian"],["hu","hu-HU","hungarian"],["lt","lt-LT","lithuanian"],["lv","lv-LV","latvian"],["et","et-EE","estonian"],["ga","ga-IE","irish"],["cy","cy-GB","welsh"],["eu","eu-ES","basque"],["ca","ca-ES","catalan"],["gl","gl-ES","galician"],["af","af-ZA","afrikaans"],["sw","sw-KE","swahili"],["yo","yo-NG","yoruba"],["ig","ig-NG","igbo"],["ha","ha-NG","hausa"],["zu","zu-ZA","zulu"],["xh","xh-ZA","xhosa"],["am","am-ET","amharic"],["so","so-SO","somali"],["ht","ht-HT","haitian creole|haitian"],["he","he-IL","hebrew"],["fa","fa-IR","persian|farsi"],["ur","ur-PK","urdu"],["bn","bn-BD","bengali|bangla"],["ta","ta-IN","tamil"],["te","te-IN","telugu"],["mr","mr-IN","marathi"],["gu","gu-IN","gujarati"],["pa","pa-IN","punjabi|panjabi"],["kn","kn-IN","kannada"],["ml","ml-IN","malayalam"],["ne","ne-NP","nepali"],["si","si-LK","sinhala|sinhalese"],["my","my-MM","burmese|myanmar"],["lo","lo-LA","lao|laotian"],["ka","ka-GE","georgian"],["hy","hy-AM","armenian"],["az","az-AZ","azerbaijani"],["kk","kk-KZ","kazakh"],["uz","uz-UZ","uzbek"],["tg","tg-TJ","tajik"],["ky","ky-KG","kyrgyz|kirghiz"],["mn","mn-MN","mongolian"],["be","be-BY","belarusian"],["is","is-IS","icelandic"],["mt","mt-MT","maltese"],["sq","sq-AL","albanian"],["eo","eo","esperanto"],["la","la","latin"],["ms","ms-MY","malay"],["su","su-ID","sundanese"],["jv","jv-ID","javanese"],["ceb","ceb-PH","cebuano"],["haw","haw-US","hawaiian"],["mi","mi-NZ","maori"],["fy","fy-NL","frisian"],["gd","gd-GB","scottish gaelic|scots gaelic"],["mg","mg-MG","malagasy"],["ny","ny-MW","chichewa|chewa"],["rw","rw-RW","kinyarwanda"],["sn","sn-ZW","shona"],["st","st-ZA","sesotho|sotho"],["tk","tk-TM","turkmen"],["tt","tt-RU","tatar"],["ug","ug-CN","uyghur|uighur"],["yi","yi","yiddish"],["ps","ps-AF","pashto"],["sd","sd-PK","sindhi"],["ku","ku-TR","kurdish"],["or","or-IN","odia|oriya"],["as","as-IN","assamese"],["lb","lb-LU","luxembourgish"],["co","co-FR","corsican"],["sm","sm-WS","samoan"],["to","to-TO","tongan"]
+];
+const LANG_TAG={},LANG_ALIAS={},REG_NAME={};
+for(const k in LANGS)if(LANGS[k]&&LANGS[k].b)LANG_TAG[k]=LANGS[k].b;
+for(const [c,tag,al] of LANG_REG){LANG_TAG[c]=tag;LANG_ALIAS[c]=c;const names=al.split("|");REG_NAME[c]=names[0][0].toUpperCase()+names[0].slice(1);names.forEach(a=>LANG_ALIAS[a]=c)}
+for(const c of Object.keys(LANG_TAG))if(!AI_NAME[c])AI_NAME[c]=REG_NAME[c]||c; /* the AI brain now knows every registry language by name */
+const langNameOf=d=>(LANGS[d]&&LANGS[d].n)||REG_NAME[d]||d;
+/* native-script / native-spelling names, matched on the raw text and swapped
+   for the English name so the normal patterns can resolve them */
+const LANG_NATIVE={"ខ្មែរ":"khmer","tiếng việt":"vietnamese","中文":"chinese","繁體中文":"chinese","日本語":"japanese","한국어":"korean","русский":"russian","українська":"ukrainian","العربية":"arabic","हिन्दी":"hindi","ภาษาไทย":"thai","ελληνικά":"greek","עברית":"hebrew","မြန်မာ":"burmese","தமிழ்":"tamil","বাংলা":"bengali","ਪੰਜਾਬੀ":"punjabi","తెలుగు":"telugu","ಕನ್ನಡ":"kannada","മലയാളം":"malayalam","मराठी":"marathi","ગુજરાતી":"gujarati","اردو":"urdu","فارسی":"persian","ქართული":"georgian","հայերեն":"armenian","සිංහල":"sinhala","नेपाली":"nepali","ລາວ":"lao","ଓଡ଼ିଆ":"odia","অসমীয়া":"assamese","bahasa melayu":"malay","türkçe":"turkish","suomi":"finnish","dansk":"danish","norsk":"norwegian","svenska":"swedish","polski":"polish","română":"romanian","български":"bulgarian","hrvatski":"croatian","srpski":"serbian","slovenčina":"slovak","lietuvių":"lithuanian","latviešu":"latvian","eesti":"estonian","íslenska":"icelandic","gaeilge":"irish","cymraeg":"welsh","magyar":"hungarian","česky":"czech","қазақша":"kazakh","кыргызча":"kyrgyz","тоҷикӣ":"tajik"};
+function langExpand(t){let s=" "+(t||"").toLowerCase()+" ";for(const k in LANG_NATIVE)s=s.split(k).join(" "+LANG_NATIVE[k]+" ");return s}
+const ALIAS_RE=Object.keys(LANG_ALIAS).filter(a=>a.length>1).sort((a,b)=>b.length-a.length).map(a=>a.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|");
+const LANG_REQ_RES=[
+  new RegExp("^("+ALIAS_RE+")( please| por favor| di| nhe| nha| ok| okay)?$"),
+  new RegExp("^(please|por favor) ("+ALIAS_RE+")$"),
+  new RegExp("^in ("+ALIAS_RE+")( please)?$"),
+  new RegExp("\\b(speak|talk|chat|reply|answer|write|switch|change|use) (in |to |into )?("+ALIAS_RE+")\\b"),
+  new RegExp("\\b(can|could|lets) (we )?(speak|talk|chat|use) (in )?("+ALIAS_RE+")\\b"),
+  new RegExp("\\b(noi|dung|chuyen|doi|parle|parler|parlez|habla|hablar|hablame) (sang )?("+ALIAS_RE+")\\b")
+];
+const REQ_GRP=[1,2,1,3,5,3];
+function langRequest(t){
+  const n=langNorm(langExpand(t));if(!n)return null;
+  const hit=i=>{const m=n.match(LANG_REQ_RES[i]);return m?(LANG_ALIAS[m[REQ_GRP[i]]]||null):null};
+  for(const i of [0,1,2]){const d=hit(i);if(d)return d} /* bare "<Language> (please)" is unambiguous */
+  if(/^(how|what|why|when|where|which|who)\b/.test(n))return null; /* asking ABOUT a language */
+  if(/\b(teach me|tell me|how do you say|what does|translate|meaning of)\b/.test(n))return null;
+  if(/\b(learn|learning|study|studying|practice|practicing|improve)\b/.test(n)&&!/\b(switch|change)\b/.test(n))return null;
+  for(const i of [3,4,5]){const d=hit(i);if(d)return d}
+  return null;
+}
+/* ===== v19: on-request TRANSLATOR — translates, never switches =====
+   A quoted/named phrase + a target language ("say 'how are you' in
+   Vietnamese", "translate 'thank you' to French please", "how do you say
+   'good morning' in Spanish?") is a TRANSLATION, even with "please" in it.
+   The reply leads in the pinned language, gives the translation, and speaks
+   ONLY the translation in the target language's voice (speakAs' lang
+   override) — the next turn is back in the pinned language automatically. */
+const TR_BOOK={
+ "hello":{vi:"Xin chào",es:"Hola",fr:"Bonjour",zh:"你好",yue:"你好",pt:"Olá",de:"Hallo",it:"Ciao",ja:"こんにちは",ko:"안녕하세요",ru:"Привет",ar:"مرحبا",hi:"नमस्ते",th:"สวัสดี",id:"Halo",tl:"Kumusta",km:"សួស្តី",nl:"Hallo",pl:"Cześć",tr:"Merhaba",uk:"Привіт",sv:"Hej",el:"Γεια σας"},
+ "how are you":{vi:"Bạn có khỏe không?",es:"¿Cómo estás?",fr:"Comment allez-vous ?",zh:"你好吗?",yue:"你好嗎?",pt:"Como você está?",de:"Wie geht es dir?",it:"Come stai?",ja:"お元気ですか?",ko:"어떻게 지내세요?",ru:"Как дела?",ar:"كيف حالك؟",hi:"आप कैसे हैं?",th:"สบายดีไหม?",id:"Apa kabar?",tl:"Kumusta ka?",km:"អ្នកសុខសប្បាយទេ?",nl:"Hoe gaat het?",pl:"Jak się masz?",tr:"Nasılsın?",uk:"Як справи?",sv:"Hur mår du?",el:"Τι κάνετε;"},
+ "thank you":{vi:"Cảm ơn bạn",es:"Gracias",fr:"Merci",zh:"谢谢",yue:"多謝",pt:"Obrigado",de:"Danke",it:"Grazie",ja:"ありがとう",ko:"감사합니다",ru:"Спасибо",ar:"شكرا لك",hi:"धन्यवाद",th:"ขอบคุณ",id:"Terima kasih",tl:"Salamat",km:"អរគុណ",nl:"Dank je wel",pl:"Dziękuję",tr:"Teşekkür ederim",uk:"Дякую",sv:"Tack",el:"Ευχαριστώ"},
+ "good morning":{vi:"Chào buổi sáng",es:"Buenos días",fr:"Bonjour",zh:"早上好",yue:"早晨",pt:"Bom dia",de:"Guten Morgen",it:"Buongiorno",ja:"おはようございます",ko:"좋은 아침이에요",ru:"Доброе утро",ar:"صباح الخير",hi:"सुप्रभात",th:"อรุณสวัสดิ์",id:"Selamat pagi",tl:"Magandang umaga",km:"អរុណសួស្តី",nl:"Goedemorgen",pl:"Dzień dobry",tr:"Günaydın",uk:"Доброго ранку",sv:"God morgon",el:"Καλημέρα"},
+ "good night":{vi:"Chúc ngủ ngon",es:"Buenas noches",fr:"Bonne nuit",zh:"晚安",yue:"早抖"},
+ "goodbye":{vi:"Tạm biệt",es:"Adiós",fr:"Au revoir",zh:"再见",yue:"再見",pt:"Adeus",de:"Auf Wiedersehen",it:"Arrivederci",ja:"さようなら",ko:"안녕히 계세요",ru:"До свидания",ar:"إلى اللقاء",hi:"अलविदा",th:"ลาก่อน",id:"Selamat tinggal",tl:"Paalam",km:"លាសិនហើយ",nl:"Tot ziens",pl:"Do widzenia",tr:"Hoşça kal",uk:"До побачення",sv:"Hej då",el:"Αντίο"},
+ "i love you":{vi:"Tôi yêu bạn",es:"Te quiero",fr:"Je t'aime",zh:"我爱你",yue:"我愛你",pt:"Eu te amo",de:"Ich liebe dich",it:"Ti amo",ja:"愛してる",ko:"사랑해요",ru:"Я тебя люблю",ar:"أحبك",hi:"मैं तुमसे प्यार करता हूँ",th:"ฉันรักคุณ",id:"Aku cinta kamu",tl:"Mahal kita",km:"ខ្ញុំស្រលាញ់អ្នក",nl:"Ik hou van je",pl:"Kocham cię",tr:"Seni seviyorum",uk:"Я тебе кохаю",sv:"Jag älskar dig",el:"Σ' αγαπώ"},
+ "please":{vi:"Làm ơn",es:"Por favor",fr:"S'il vous plaît",zh:"请",yue:"唔該"},
+ "sorry":{vi:"Xin lỗi",es:"Lo siento",fr:"Pardon",zh:"对不起",yue:"對唔住"},
+ "excuse me":{vi:"Xin lỗi",es:"Perdón",fr:"Excusez-moi",zh:"打扰一下",yue:"唔好意思"},
+ "yes":{vi:"Vâng",es:"Sí",fr:"Oui",zh:"是",yue:"係"},
+ "no":{vi:"Không",es:"No",fr:"Non",zh:"不",yue:"唔係"}
+};
+function translateRequest(t){
+  const n=langNorm(langExpand(t));if(!n)return null;
+  const tm=n.match(new RegExp("\\b(?:in|to|into) ("+ALIAS_RE+")( please| por favor)?$"))||n.match(new RegExp("\\b(?:in|to|into) ("+ALIAS_RE+")\\b"));
+  if(!tm)return null;
+  const code=LANG_ALIAS[tm[1]];if(!code)return null;
+  if(!/\b(say|translate|translation|how do you say|what is|whats|what does|mean|means)\b/.test(n))return null; /* a translation cue must be present */
+  let phraseRaw=null;const q=(t||"").match(/['"“”‘’]([^'"“”‘’]{1,80})['"“”‘’]/);if(q)phraseRaw=q[1].trim();
+  if(!phraseRaw){
+    phraseRaw=n.replace(new RegExp("\\s+(?:in|to|into) ("+ALIAS_RE+")( please| por favor)?$"),"").replace(/^(please\s+)?(how do you say|how to say|can you say|could you say|say|translate|translation of|what is|whats|what does|tell me)\s+/,"").replace(/\s+(mean|means)$/,"").trim();
+  }
+  const pn=langNorm(phraseRaw);
+  if(!pn||LANG_ALIAS[pn])return null; /* the "phrase" is itself a language name — that's a switch, not a translation */
+  return {phraseRaw,phraseNorm:pn,code};
+}
+function trBookLookup(q){const b=TR_BOOK[q.phraseNorm];if(!b)return null;if(q.code==="en")return q.phraseRaw;return b[q.code]||null}
+/* the teaching layer: word-by-word, a say-it-like pronunciation respelling,
+   and a when-to-use note (plus an optional mini example). Translation first,
+   then a few short lines — a mini-lesson, not a lecture. */
+const TR_TEACH={
+ "how are you":{
+  vi:{w:"Bạn = you · có = have · khỏe = well/healthy · không = question ending (turns it into a yes/no question)",p:"bahn koh KWAY kong",u:"The standard friendly greeting — polite for anyone, any age.",x:"— Bạn có khỏe không? — Mình khỏe, cảm ơn bạn! (I'm well, thanks!)"},
+  es:{w:"¿Cómo = how · estás = are you (informal 'you')",p:"KOH-moh es-TAHSS",u:"Casual — for friends and people your age. Formal: ¿Cómo está usted?",x:"— ¿Cómo estás? — ¡Muy bien, gracias!"},
+  fr:{w:"Comment = how · allez = are/go · vous = you (formal)",p:"koh-MAHNG tah-lay VOO",u:"Polite formal version — safe with strangers and elders.",x:"— Comment allez-vous ? — Très bien, merci !"},
+  zh:{w:"你 = you · 好 = good · 吗 = question word",p:"nee HOW mah",u:"Friendly and universal — works for everyone.",x:"— 你好吗? — 我很好,谢谢!"},
+  yue:{w:"你 = you · 好 = good · 嗎 = question word",p:"nay HO ma",u:"Everyday Cantonese greeting for anyone."},
+  pt:{w:"Como = how · você = you · está = are",p:"KOH-moo voh-SEH es-TAH",u:"The friendly standard greeting in Brazil.",x:"— Como você está? — Estou bem, obrigado!"},
+  km:{w:"អ្នក = you · សុខសប្បាយ = well and happy · ទេ = question ending",p:"neak sok-sa-BYE teh",u:"The polite everyday greeting in Cambodia."},
+  tl:{w:"Kumusta = how (from Spanish 'cómo está') · ka = you",p:"koo-moos-TAH kah",u:"The everyday Filipino greeting for anyone.",x:"— Kumusta ka? — Mabuti naman, salamat!"}},
+ "hello":{
+  vi:{w:"Xin = respectfully · chào = greetings",p:"sin chow",u:"Polite hello for anyone; close friends often just say 'Chào bạn'."},
+  es:{w:"One friendly word — no grammar needed",p:"OH-lah",u:"Works any time of day, formal or casual."},
+  fr:{w:"Bon = good · jour = day — literally 'good day'",p:"bon-ZHOOR",u:"The all-purpose daytime greeting; say Bonsoir in the evening."},
+  zh:{w:"你 = you · 好 = good",p:"nee HOW",u:"The standard hello for everyone."},
+  yue:{w:"你 = you · 好 = good",p:"nay HO",u:"The standard Cantonese hello."},
+  pt:{w:"A warm all-day hello",p:"oh-LAH",u:"Any time, anyone."},
+  km:{w:"សួស្តី = a respectful greeting word",p:"soo-uh-SDEY",u:"Polite hello — pair it with a little palms-together bow (sampeah)."},
+  tl:{w:"Borrowed from Spanish — the standard greeting",p:"koo-moos-TAH",u:"It also means 'how are you' — answer 'Mabuti!' (I'm good)."}},
+ "thank you":{
+  vi:{w:"Cảm ơn = thank · bạn = you",p:"gahm uhn bahn",u:"For anyone. To elders, soften it with a final 'ạ': Cảm ơn ạ."},
+  es:{w:"Gracias = 'graces' — thanks for favours received",p:"GRAH-see-ahs",u:"Universal. 'Muchas gracias' = thanks a lot."},
+  fr:{w:"One word does it all",p:"mair-SEE",u:"Universal; 'merci beaucoup' = thanks very much."},
+  zh:{w:"谢 = thank, said twice for warmth",p:"shyeh-shyeh",u:"Everyday thanks for anyone."},
+  yue:{w:"多謝 is for gifts and help; 唔該 is for small services",p:"daw jeh",u:"Use 多謝 for gifts, 唔該 when someone serves you."},
+  pt:{w:"Men say Obrigado, women say Obrigada",p:"oh-bree-GAH-doo",u:"It matches the speaker's gender, not the listener's."},
+  km:{w:"អរគុណ = thank you (polite form)",p:"aw-KOON",u:"The polite standard thanks — pair with a sampeah."},
+  tl:{w:"One word, always right",p:"sah-LAH-maht",u:"Add 'po' for elders: Salamat po."}},
+ "good morning":{
+  vi:{w:"Chào = greetings · buổi sáng = morning",p:"chow bwee sahng",u:"A polite morning greeting for anyone."},
+  es:{w:"Buenos = good · días = days",p:"BWAY-nohs DEE-ahs",u:"Use it until about midday."},
+  fr:{w:"The same word as hello — 'good day'",p:"bon-ZHOOR",u:"Bonjour all day; Bonsoir after about 6pm."},
+  zh:{w:"早上 = morning · 好 = good",p:"zaow-shahng how",u:"Morning only — later in the day switch to 你好."},
+  pt:{w:"Bom = good · dia = day",p:"bom JEE-ah",u:"The morning greeting across Brazil."},
+  km:{w:"អរុណ = dawn · សួស្តី = greetings",p:"ah-roon soo-uh-SDEY",u:"The formal morning greeting."},
+  tl:{w:"Magandang = beautiful · umaga = morning",p:"mah-gan-DAHNG oo-MAH-gah",u:"A cheerful morning greeting for anyone."}},
+ "goodbye":{
+  vi:{w:"Tạm = for now · biệt = part — 'parting for now'",p:"tahm bee-eht",u:"The standard goodbye for anyone."},
+  es:{w:"A = to · Dios = God — literally 'to God'",p:"ah-dee-OHSS",u:"Any goodbye; 'hasta luego' = see you later."},
+  fr:{w:"Au = to the · revoir = seeing again",p:"oh ruh-VWAR",u:"The standard polite goodbye."},
+  zh:{w:"再 = again · 见 = see — 'see you again'",p:"dzai jee-en",u:"The standard goodbye."},
+  pt:{w:"From Latin 'ad Deum' — a cousin of adiós",p:"ah-DEH-oosh",u:"The standard goodbye in Brazil."},
+  tl:{w:"The everyday farewell word",p:"pah-AH-lam",u:"Warm and standard."}},
+ "i love you":{
+  vi:{w:"Tôi = I · yêu = love · bạn = you",p:"toy ee-oh bahn",u:"Romantic — for partners, not for friends."},
+  es:{w:"Te = you · quiero = I love/want",p:"teh kee-EH-roh",u:"'Te quiero' is warm; 'Te amo' is deeper and more serious."},
+  fr:{w:"Je = I · t' = you · aime = love",p:"zhuh TEM",u:"The romantic standard."},
+  zh:{w:"我 = I · 爱 = love · 你 = you",p:"waw eye nee",u:"Direct and serious — not said casually."},
+  pt:{w:"Eu = I · te = you · amo = love",p:"eh-oo chee AH-moo",u:"The romantic standard in Brazil."},
+  tl:{w:"Mahal = love (it also means 'expensive'!) · kita = you-and-I in one word",p:"mah-HAHL kee-TAH",u:"The classic romantic line."}},
+ "please":{vi:{w:"Làm ơn = 'do a favour'",p:"lahm uhn",u:"Attach it to requests, just like English 'please'."}},
+ "sorry":{vi:{w:"Xin = please · lỗi = fault — 'pardon my fault'",p:"sin loy",u:"For apologies big and small."}},
+ "yes":{vi:{w:"Vâng is the polite yes",p:"vuhng",u:"Vâng for elders and formal settings; a casual Ừ is for close friends only."}},
+ "no":{vi:{w:"Không = no / not",p:"kohng",u:"Also the word that makes sentences negative."}}
+};
+function trTeachLines(q){
+  const te=(TR_TEACH[q.phraseNorm]||{})[q.code];if(!te)return"";
+  let s="";
+  if(te.w)s+="\n• "+TT("trWord")+": "+te.w;
+  if(te.p)s+="\n• "+TT("trSay")+": "+te.p;
+  if(te.u)s+="\n• "+TT("trUse")+": "+te.u;
+  if(te.x)s+="\n• "+TT("trTry")+": "+te.x;
+  return s;
+}
+function langSim(a,b){ /* loose word-overlap similarity for judging a spoken repeat attempt */
+  if(!a||!b)return 0;if(a===b)return 1;
+  if(!a.includes(" ")&&!b.includes(" "))return (b.includes(a)||a.includes(b))?0.8:0;
+  const A=a.split(" "),B=b.split(" ");let hit=0;A.forEach(w=>{if(B.includes(w))hit++});
+  return hit/Math.max(A.length,B.length);
+}
 async function send(raw,already){
-  if(raw==null&&micOn)micStop(false,true);
+  if(raw==null&&micOn)micNoteSend(); /* v19: a typed send no longer kills the voice session */
   const t=(raw??$("#input").value).trim();if(!t||S.busy)return;
   if(!already){$("#input").value="";autoGrow();addMsg("me",t);lastUser=t;S.history.push({role:"user",content:t});sfx("blip")}
   S.stats.msgs++;touchStreak();saveStats();
-  if(S.lang==="auto"&&!S.tutor&&!(S.game&&S.game.id==="practice")){const d=detectLang(t);if(d&&d!==S.cur&&t.length>2){S.cur=d;store.set("cur",d);applyUI()}}
+  if(!S.tutor&&!S.game){ /* v19: repeat-coaching, then translation (never switches), then switch requests; detection only suggests */
+    if(lastTr){const sc=langSim(langNorm(t),langNorm(lastTr.txt));if(sc>=0.45){S._repeatAck={good:sc>=0.75,tr:lastTr};lastTr=null}else lastTr=null}
+    if(!S._repeatAck){
+      const trq=translateRequest(t);
+      if(trq)S._transReq=trq;
+      else{const lr=langRequest(t);
+        if(lr&&lr!==replyLang()){langPin(lr);S._langAck=lr}
+        else if(S.lang==="auto"&&t.length>2)langSuggest(detectLang(t));}
+    }
+  }
   const low=t.toLowerCase();
   if(!S.game){
     const gm=low.match(/\b(mind reader|riddle|emoji|would you rather|story chain|hot or cold|truth or dare|8 ?ball|rate my|party mode|decide for me)\b/);
@@ -1669,6 +1868,14 @@ async function send(raw,already){
   }
   S.busy=true;const ty=typing();
   try{
+    if(S._repeatAck){const r=S._repeatAck;S._repeatAck=null;ty.remove();if(r.good)oracle(TT("trPraise"));else{oracle(fill(TT("trRetry"),{t:r.tr.txt}));if(S.voice)speakAs(curChar(),r.tr.txt,null,r.tr.code)}return}
+    if(S._transReq){const q=S._transReq;S._transReq=null;ty.remove(); /* translation = a mini-lesson, conversation stays pinned */
+      let txt=trBookLookup(q);
+      if(!txt&&S.brainOn&&S.engine&&typeof quickAI==="function")txt=await quickAI("Translate the following text into "+(REG_NAME[q.code]||q.code)+". Reply with ONLY the translation, no quotes, no explanation: \""+q.phraseRaw+"\"");
+      if(txt){let disp=fill(TT("trLead"),{n:langNameOf(q.code)})+" “"+txt+"”"+trTeachLines(q);const noV=(typeof VOICES!=="undefined"&&VOICES.length&&typeof voicesFor==="function"&&!voicesFor(q.code).length);if(noV)disp+=" "+TT("trNoVoice");addMsg("bot",disp);S.history.push({role:"assistant",content:disp});mascot("talk");lastTr={txt,code:q.code};if(S.voice)speakAs(curChar(),txt,null,q.code)}
+      else oracle(fill(TT("trCant"),{p:q.phraseRaw}));
+      setChips();return}
+    if(S._langAck){const d=S._langAck;S._langAck=null;ty.remove();oracle(LANG_ACK[d]||("Okay — "+langNameOf(d)+"!"));return} /* confirm in the NEW language, then continue in it */
     if(S.game&&gameInput(t)){ty.remove();return}
     if(S.brainOn&&S.engine){
       captureFacts(t);ty.remove();const b=addMsg("bot","");mascot("talk");
@@ -1712,8 +1919,8 @@ const CHAR_TAGS={en:{boy:"Boy",girl:"Girl",teenBoy:"Teen boy",teenGirl:"Teen gir
   fr:{boy:"Garçon",girl:"Fille",teenBoy:"Ado",teenGirl:"Ado",man:"Homme",woman:"Femme",grandpa:"Papi",grandma:"Mamie",robot:"Robot",ghost:"Fantôme"},
   zh:{boy:"男孩",girl:"女孩",teenBoy:"少年",teenGirl:"少女",man:"男士",woman:"女士",grandpa:"爷爷",grandma:"奶奶",robot:"机器人",ghost:"友善幽灵"}};
 const HI_IM={en:"Hi! I'm {n}. Want to chat with me?",vi:"Xin chào! Mình là {n}. Nói chuyện với mình nhé?",es:"¡Hola! Soy {n}. ¿Charlamos?",fr:"Salut ! Je suis {n}. On discute ?",zh:"你好！我是{n}。和我聊聊天吧？"};
-Object.assign(PACKS.en.ui,{chars:"Talking characters",charsN:"Pick who talks to you. Each one has its own face and voice. Tap ▶ to hear them.",sysVoice:"Device voice",sysVoiceN:"Auto picks a voice that fits the character and your language. Voices come from your phone or computer.",autoVoice:"Auto (match character)",talkMode:"Hands-free talk mode",talkModeN:"The character speaks, then listens for your answer, like a phone call.",talkOn:"Talk mode on. Speak after the character finishes.",talkOff:"Talk mode off",charNow:"Now talking: {n}",micLive:"🎙️ Listening… just speak — tap 🎙️ to send."});
-Object.assign(PACKS.vi.ui,{chars:"Nhân vật biết nói",charsN:"Chọn người nói chuyện với bạn. Mỗi nhân vật có khuôn mặt và giọng riêng. Bấm ▶ để nghe thử.",sysVoice:"Giọng của thiết bị",sysVoiceN:"Tự động chọn giọng hợp với nhân vật và ngôn ngữ. Giọng có sẵn trên điện thoại hoặc máy tính của bạn.",autoVoice:"Tự động (hợp nhân vật)",talkMode:"Chế độ nói chuyện rảnh tay",talkModeN:"Nhân vật nói xong sẽ lắng nghe bạn trả lời, như gọi điện.",talkOn:"Đã bật nói chuyện rảnh tay. Hãy nói sau khi nhân vật nói xong.",talkOff:"Đã tắt nói chuyện rảnh tay",charNow:"Đang nói chuyện với: {n}",micLive:"🎙️ Đang nghe… cứ nói — chạm 🎙️ để gửi."});
+Object.assign(PACKS.en.ui,{chars:"Talking characters",charsN:"Pick who talks to you. Each one has its own face and voice. Tap ▶ to hear them.",sysVoice:"Device voice",sysVoiceN:"Auto picks a voice that fits the character and your language. Voices come from your phone or computer.",autoVoice:"Auto (match character)",talkMode:"Hands-free talk mode",talkModeN:"The character speaks, then listens for your answer, like a phone call.",talkOn:"Talk mode on. Speak after the character finishes.",talkOff:"Talk mode off",charNow:"Now talking: {n}",micLive:"🎙️ Voice is on — just talk. I'll keep listening; tap the mic to stop.",micVon:"🎙️ Voice on — tap mic to stop",micStalled:"⚠️ Voice couldn't restart — tap the mic off, then on again.",micSending:"🎙️ Sending… voice stays on",langSwitchAsk:"You seem to be speaking {n}. Switch to {n}?",trLead:"In {n}, that's:",trCant:"I can't translate “{p}” offline yet — load the AI brain and I can translate anything.",trNoVoice:"(No voice for this language on this device, so I'll just write it.)",trWord:"Word by word",trSay:"Say it like",trUse:"When to use",trTry:"Try it",trPraise:"🎉 Yes! That's exactly right — well done!",trRetry:"So close! It's “{t}” — listen once more, and try again any time.",langVoiceLimited:"🎙️ Voice input may be limited for this language on this device — typing works fully."});
+Object.assign(PACKS.vi.ui,{chars:"Nhân vật biết nói",charsN:"Chọn người nói chuyện với bạn. Mỗi nhân vật có khuôn mặt và giọng riêng. Bấm ▶ để nghe thử.",sysVoice:"Giọng của thiết bị",sysVoiceN:"Tự động chọn giọng hợp với nhân vật và ngôn ngữ. Giọng có sẵn trên điện thoại hoặc máy tính của bạn.",autoVoice:"Tự động (hợp nhân vật)",talkMode:"Chế độ nói chuyện rảnh tay",talkModeN:"Nhân vật nói xong sẽ lắng nghe bạn trả lời, như gọi điện.",talkOn:"Đã bật nói chuyện rảnh tay. Hãy nói sau khi nhân vật nói xong.",talkOff:"Đã tắt nói chuyện rảnh tay",charNow:"Đang nói chuyện với: {n}",micLive:"🎙️ Đã bật giọng nói — cứ nói nhé. Mình sẽ nghe tiếp; chạm mic để dừng.",micVon:"🎙️ Đang nghe — chạm mic để dừng",micStalled:"⚠️ Không khởi động lại được giọng nói — chạm mic tắt đi rồi bật lại.",micSending:"🎙️ Đang gửi… vẫn đang nghe",langSwitchAsk:"Hình như bạn đang nói {n}. Đổi sang {n} nhé?",trLead:"Bằng {n}, là:",trCant:"Mình chưa dịch “{p}” offline được — tải bộ não AI lên là mình dịch được mọi thứ.",trNoVoice:"(Thiết bị này chưa có giọng cho ngôn ngữ này nên mình chỉ viết thôi nhé.)",trWord:"Từng từ",trSay:"Đọc như",trUse:"Khi nào dùng",trTry:"Thử nhé",trPraise:"🎉 Đúng rồi! Chính xác — giỏi lắm!",trRetry:"Gần đúng rồi! Là “{t}” — nghe lại một lần, rồi thử lại bất cứ lúc nào nhé.",langVoiceLimited:"🎙️ Nhập bằng giọng nói có thể bị hạn chế với ngôn ngữ này trên thiết bị này — gõ chữ vẫn dùng bình thường."});
 Object.assign(PACKS.es.ui,{chars:"Personajes que hablan",charsN:"Elige quién te habla. Cada uno tiene su cara y su voz. Toca ▶ para oírlos.",sysVoice:"Voz del dispositivo",autoVoice:"Auto (según personaje)",talkMode:"Modo manos libres",talkModeN:"El personaje habla y luego escucha tu respuesta.",talkOn:"Manos libres activado.",talkOff:"Manos libres desactivado",charNow:"Hablando con: {n}"});
 Object.assign(PACKS.fr.ui,{chars:"Personnages qui parlent",charsN:"Choisis qui te parle. Chacun a son visage et sa voix. Touche ▶ pour l'écouter.",sysVoice:"Voix de l'appareil",autoVoice:"Auto (selon le personnage)",talkMode:"Mode mains libres",talkModeN:"Le personnage parle, puis écoute ta réponse.",talkOn:"Mains libres activé.",talkOff:"Mains libres désactivé",charNow:"Tu parles avec : {n}"});
 Object.assign(PACKS.zh.ui,{chars:"会说话的角色",charsN:"选择和你说话的角色。每个都有自己的脸和声音。点 ▶ 试听。",sysVoice:"设备语音",autoVoice:"自动（匹配角色）",talkMode:"免提对话模式",talkModeN:"角色说完后会听你回答，就像打电话。",talkOn:"已开启免提对话。",talkOff:"已关闭免提对话",charNow:"正在对话：{n}"});
@@ -1843,7 +2050,24 @@ function speak(text,force){
   speakAs(curChar(),text,()=>{if(S.talk&&!S.busy)setTimeout(listen,250)});
 }
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-let rec=null,micOn=false,micDone="",micBase="",micRestarts=0,micIdleT=null;
+/* ======== v19 "Conversation mode" ========
+   One tap on the mic starts a voice SESSION. The session stays on for the
+   whole conversation: a keep-alive loop (re)starts SpeechRecognition whenever
+   it ends on its own (browsers end it on silence, errors, and after each
+   utterance) until the user taps the mic off. Browser rule, honestly:
+   a microphone can never start with ZERO user taps — audio capture always
+   needs one gesture (and mic permission) first. One tap per chat is the
+   floor; after that tap, no more pressing is ever needed.
+   The loop pauses while a reply is being generated (S.busy), while the
+   companion is speaking (TTS), while the tab is hidden, and while the user
+   is on another tab — and resumes on its own when the block clears.
+   Silence (or a pause after speaking) sends what was said WITHOUT ending
+   the session. Only three things end a session: the user taps the mic off,
+   the talk toggle is turned off, or the browser hard-denies the mic
+   (not-allowed / service-not-allowed / audio-capture) — then a one-line
+   notice explains why. If recognition itself can't even start, the UI
+   shows a stalled notice instead of dying silently. */
+let rec=null,micOn=false,micDone="",micBase="",micIdleT=null,micRestT=null,micFails=0,micThrows=0,micNextAt=0,micTabAway=false,micDead=false;
 function micTotal(){return ((micDone?micDone+" ":"")+((rec&&rec._fin)||"")).replace(/\s+/g," ").trim()}
 function micShow(interim){
   const inp=$("#input");if(!inp)return;
@@ -1851,67 +2075,128 @@ function micShow(interim){
   inp.value=((micBase?micBase+" ":"")+(fin?fin+" ":"")+interim).trim();
   autoGrow();
 }
+function micSpeaking(){ /* is the companion's voice playing right now? (any engine) */
+  try{if(window.speechSynthesis&&speechSynthesis.speaking)return true}catch(e){}
+  try{if(typeof ST!=="undefined"&&(ST.ampOn||performance.now()<(ST.talkUntil||0)))return true}catch(e){}
+  return false;
+}
+function micState(){ /* the visible session state: button + hint bar, never silent */
+  const b=$("#micBtn");
+  if(b){b.classList.toggle("rec",!!rec);b.classList.toggle("von",micOn&&!rec&&!micDead);b.classList.toggle("dead",micOn&&micDead);b.setAttribute("aria-pressed",micOn?"true":"false")}
+  const bar=$("#micHintBar");
+  if(bar){bar.hidden=!micOn;if(micOn)bar.textContent=micDead?T("micStalled"):T("micVon")}
+}
+function micHintShow(t){const bar=$("#micHintBar");if(bar&&micOn){bar.hidden=false;bar.textContent=t}}
 function micCleanup(keepText){
-  clearTimeout(micIdleT);micIdleT=null;rec=null;micDone="";micRestarts=0;
-  $("#micBtn").classList.remove("rec");
+  clearTimeout(micIdleT);micIdleT=null;clearTimeout(micRestT);micRestT=null;rec=null;micDone="";micFails=0;micThrows=0;micNextAt=0;
   if(!keepText){const inp=$("#input");if(inp){inp.value=micBase;autoGrow()}}
-  micBase="";
+  micBase="";micState();
 }
-function micSend(){
+function micFlush(){ /* send what has been dictated so far; the SESSION STAYS ON */
   const t=((micBase?micBase+" ":"")+micTotal()).replace(/\s+/g," ").trim();
-  micOn=false;micCleanup();
-  if(t)send(t);
+  micDone="";micBase="";clearTimeout(micIdleT);micIdleT=null;
+  if(rec){const r=rec;r._drop=1;try{r.stop()}catch(e){if(rec===r)rec=null}}
+  if(t){micHintShow(T("micSending"));send(t)}
+  micState();
 }
-function micStop(sendIt,keepText){
-  if(!micOn&&!rec)return;
-  micOn=false;clearTimeout(micIdleT);micIdleT=null;
-  const r=rec;
-  if(r){if(sendIt)r._send=1;if(keepText)r._keep=1;try{r.stop()}catch(e){micDone=micTotal();rec=null;if(sendIt)micSend();else micCleanup(keepText)}}
-  else if(sendIt)micSend();else micCleanup(keepText);
+function micAutoSend(){ /* a pause after speaking: send the words, keep listening */
+  micIdleT=null;
+  if(!micOn)return;
+  if(S.busy){micIdleT=setTimeout(micAutoSend,800);return}
+  if(micTotal())micFlush();
 }
-function micStart(){
-  const r=new SR();rec=r;r._fin="";
+function micNoteSend(){ /* a typed/composer send: the composer text goes out once;
+   dictation accumulators are dropped so nothing double-sends, and the session
+   resumes on its own after the reply. (v18 killed the whole session here.) */
+  if(S.busy)return; /* send() is about to no-op; leave the dictation untouched */
+  micDone="";micBase="";clearTimeout(micIdleT);micIdleT=null;
+  if(rec){const r=rec;r._drop=1;try{r.stop()}catch(e){if(rec===r)rec=null}}
+}
+function micKill(){ /* hard permission denial: end the session, say why, once */
+  micOn=false;micDead=false;micFails=0;micThrows=0;clearTimeout(micIdleT);micIdleT=null;clearTimeout(micRestT);micRestT=null;
+  if(rec){const r=rec;r._drop=1;try{r.stop()}catch(e){}if(rec===r)rec=null}
+  const b=micBase;micDone="";micBase="";
+  const inp=$("#input");if(inp){inp.value=b;autoGrow()}
+  toast(T("micOff"));if(S.talk)setTalk(false);
+  micState();
+}
+function micStartFail(){ /* recognition couldn't even start (no mic device, busy audio stack…) */
+  micThrows++;
+  if(micThrows>=3){micDead=true;toast(T("micStalled"));micState()} /* visible dead state, never silent */
+  else{micNextAt=Date.now()+600;micKick()}
+}
+function micKick(){if(!micOn||micDead||rec||micRestT!=null)return;micRestT=setTimeout(micLoop,60)}
+function micLoop(){ /* the keep-alive heartbeat of a voice session */
+  micRestT=null;
+  if(!micOn||micDead||rec)return;
+  if(document.hidden||micTabAway||S.busy||micSpeaking()||Date.now()<micNextAt){micRestT=setTimeout(micLoop,300);return}
+  micRun();
+}
+function micRun(){ /* one recognition run; the session (micOn) outlives every run */
+  if(!micOn||rec||micDead)return;
+  let r;try{r=new SR()}catch(e){micStartFail();return}
+  rec=r;r._fin="";r._had=false;r._net=false;
   const l=S.tutor?S.tutor.lang:(S.game&&S.game.id==="practice"?S.game.lang:replyLang());
   r.lang=(LANGS[l]&&LANGS[l].b)||navigator.language||"en-US";
+  if(!S.tutor&&!(S.game&&S.game.id==="practice")&&S.langTag)r.lang=S.langTag; /* v19: the pinned registry tag wins */
+  if(micLangFB)r.lang=(LANGS.en&&LANGS.en.b)||"en-US"; /* the recogniser rejected the pinned locale: fall back for voice only — typed chat is unaffected */
   r.continuous=true;r.interimResults=true;
   r.onresult=e=>{
-    if(rec!==r)return;
+    if(rec!==r||micSpeaking())return; /* never transcribe the companion's own voice */
     let fin="",interim="";
     for(let i=0;i<e.results.length;i++){const res=e.results[i];if(res.isFinal)fin+=res[0].transcript+" ";else interim+=res[0].transcript+" "}
     fin=fin.replace(/\s+/g," ").trim();
-    if(fin.length>r._fin.length){micRestarts=0;clearTimeout(micIdleT);micIdleT=setTimeout(()=>{if(micOn)micStop(true)},1400)}
+    if(fin.length>r._fin.length){r._had=true;micFails=0;micThrows=0;clearTimeout(micIdleT);micIdleT=setTimeout(micAutoSend,1400)}
     r._fin=fin;
     micShow(interim.replace(/\s+/g," ").trim());
   };
   r.onerror=e=>{
     if(rec!==r)return;
-    if(e&&(e.error==="not-allowed"||e.error==="service-not-allowed"||e.error==="audio-capture")){micOn=false;toast(T("micOff"));if(S.talk)setTalk(false);else micStop(false)}
+    if(e&&(e.error==="not-allowed"||e.error==="service-not-allowed"||e.error==="audio-capture"))micKill();
+    else if(e&&e.error==="language-not-supported"){micLangFB=true;if(!S._langNote){S._langNote=1;toast(TT("langVoiceLimited"))}} /* noted once; the session itself keeps going */
+    else if(e&&e.error==="network")r._net=true; /* retry a little slower; onend does the restart */
   };
   r.onend=()=>{
     if(rec!==r)return;
-    if(r._send){micSend();return}
-    if(!micOn){micCleanup(r._keep);return}
-    micDone=micTotal();r._fin="";
-    if(micRestarts<6){micRestarts++;try{micStart();return}catch(e){}}
-    micOn=false;
-    if(micDone)micSend();else micCleanup();
+    if(r._drop){rec=null;micState();micKick();return} /* we stopped it ourselves (send/TTS/tab): just resume */
+    const fin=r._fin;rec=null;
+    if(!micOn){micCleanup(r._keep);return} /* the user ended the session while this run was live */
+    if(fin)micDone=((micDone?micDone+" ":"")+fin).trim(); /* fold this run's words into the draft */
+    if(r._had)micFails=0;else micFails++; /* any real result resets the backoff */
+    micNextAt=Date.now()+Math.min(250*micFails,2000)+(r._net?1500:0);
+    micState();micKick(); /* NO restart budget: the session restarts until the user ends it */
   };
-  r.start();
-  $("#micBtn").classList.add("rec");
+  try{r.start();micState()}catch(e){rec=null;micStartFail()}
 }
-function listen(hint){
-  if(!SR||micOn||rec)return;
-  micOn=true;micDone="";micRestarts=0;micBase=$("#input").value.trim();
-  try{micStart()}catch(e){micOn=false;rec=null;micCleanup();toast(T("micOff"));return}
+function micStop(sendIt,keepText){
+  if(!micOn&&!rec)return;
+  if(sendIt&&S.busy){sendIt=false;keepText=true} /* a reply is in flight: end the session but don't eat the words */
+  micOn=false;micDead=false;micFails=0;micThrows=0;clearTimeout(micIdleT);micIdleT=null;clearTimeout(micRestT);micRestT=null;
+  if(sendIt)micFlush();
+  else if(rec){const r=rec;if(keepText)r._keep=1;try{r.stop()}catch(e){if(rec===r)rec=null;micCleanup(keepText)}}
+  else micCleanup(keepText);
+  micState();
+}
+function listen(hint){ /* one tap = the session starts; it then runs itself */
+  if(!SR)return;
+  if(micOn){micKick();return}
+  micOn=true;micDead=false;micFails=0;micThrows=0;micNextAt=0;micDone="";micBase=$("#input").value.trim();
   if(hint)toast(T("micLive"));
+  micState();micKick();
 }
+document.addEventListener("visibilitychange",()=>{ /* sleep in the background, wake on return */
+  if(document.hidden){if(rec){const r=rec;try{r.stop()}catch(e){if(rec===r)rec=null}}}
+  else micKick();
+});
+{const _swT=switchTab;switchTab=function(v){_swT(v);micTabAway=v!=="chat";if(!micTabAway)micKick()}} /* the session belongs to the chat view */
 if(SR){$("#micBtn").hidden=false;$("#micBtn").onclick=()=>{if(micOn){micStop(true);return}listen(true)}}
+micState();
 
 /* ================= wishes & cards ================= */
 const WISH_IDEAS={en:["I wish my homework did itself","I wish I could teleport to the beach","I wish my cat could talk","I wish for unlimited pizza","I wish I was brave enough to start my business"],vi:["Ước gì bài tập tự làm xong","Ước gì mình dịch chuyển tới biển được","Ước gì con mèo biết nói","Ước có trà sữa miễn phí cả đời","Ước mình đủ can đảm để khởi nghiệp"],es:["Deseo que mi tarea se haga sola","Deseo teletransportarme a la playa","Deseo pizza ilimitada"],fr:["Je souhaite que mes devoirs se fassent tout seuls","Je souhaite me téléporter à la plage","Je souhaite des croissants illimités"],zh:["我希望作业能自己写完","我希望能瞬移到海边","我希望奶茶永远免费"]};
 function grantWish(w){
   w=w.trim();if(!w)return;
-  if(S.lang==="auto"){const d=detectLang(w);if(d){S.cur=d;store.set("cur",d);applyUI()}}
+  if(S.lang==="auto")langSuggest(detectLang(w)); /* v19 lock: suggest, never switch */
   const p=P()&&P()!==PACKS.en?P():null;const s=(p||PACKS.en).s;
   const core=p?w.replace(p.s.re.wishStrip,"").replace(/[.!?。！？]+$/,""):w.replace(/^(i wish( for| that| to)?|wish( for)?)\s*/i,"").replace(/[.!?]+$/,"");
   const ans=(p?"*✨* ":"*POOF* ")+fill(s.grant,{w:cap(core||w),t:pick(s.twists)})+" "+pick(s.real);
@@ -2035,7 +2320,7 @@ $("#wishBtn").onclick=()=>grantWish($("#wishInput").value);
 $("#wishRandom").onclick=()=>{const w=pick(WISH_IDEAS[uiLang()]||WISH_IDEAS.en);$("#wishInput").value=w;grantWish(w)};
 $("#nameInput").value=S.name;
 $("#nameInput").addEventListener("change",e=>{S.name=e.target.value.trim();store.set("name",S.name);renderMem();if(S.name)toast(fill(T("nameHi"),{n:S.name}))});
-$("#langSel").onchange=e=>{S.lang=e.target.value;store.set("lang",S.lang);if(S.lang!=="auto"){S.cur=S.lang;store.set("cur",S.cur)}applyUI();sfx("coin")};
+$("#langSel").onchange=e=>{S.lang=e.target.value;store.set("lang",S.lang);if(S.lang!=="auto"){S.cur=S.lang;store.set("cur",S.cur)}langSugD=null;langSugN=0;langSugOff=false;const lb=$("#langHintBar");if(lb)lb.hidden=true;applyUI();sfx("coin")};
 function renderSpice(){document.querySelectorAll("#spiceSeg button").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.v===S.spice))}
 document.querySelectorAll("#spiceSeg button").forEach(b=>b.onclick=()=>{S.spice=+b.dataset.v;store.set("spice",S.spice);renderSpice();sfx("blip")});
 $("#voiceSw").setAttribute("aria-checked",S.voice);
@@ -4705,7 +4990,7 @@ function browserSpeak(c,text,after,l){
   if(!("speechSynthesis" in window)){if(after)after();return}
   try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const m=MODES[S.mode]||{pitch:1,rate:1};
     u.pitch=Math.max(.1,Math.min(2,(c.pitch||1)*(1+(m.pitch-1)*.3)));u.rate=Math.max(.5,Math.min(1.6,(c.rate||1)*VX.speed*(1+(m.rate-1)*.5)));
-    u.lang=(LANGS[l]&&LANGS[l].b)||"en-US";const v=pickVoice(c,l);if(v)u.voice=v;
+    u.lang=(LANGS[l]&&LANGS[l].b)||(typeof LANG_TAG!=="undefined"&&LANG_TAG[l])||"en-US";const v=pickVoice(c,l);if(v)u.voice=v; /* v19: registry tags beyond the original language list */
     u.onstart=()=>{const el=$("#mascot");if(el){el.classList.remove("is-think","is-happy");el.classList.add("is-talk")}};
     u.onboundary=e=>{ST.wb=performance.now();ST.wl=Math.max(2,e.charLength||4);ST.hasWB=true};
     u.onend=u.onerror=()=>{const el=$("#mascot");if(el)el.classList.remove("is-talk");if(after)after()};

@@ -761,7 +761,7 @@ function browserSpeak(c,text,after,l){
   if(!("speechSynthesis" in window)){if(after)after();return}
   try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const m=MODES[S.mode]||{pitch:1,rate:1};
     u.pitch=Math.max(.1,Math.min(2,(c.pitch||1)*(1+(m.pitch-1)*.3)));u.rate=Math.max(.5,Math.min(1.6,(c.rate||1)*VX.speed*(1+(m.rate-1)*.5)));
-    u.lang=(LANGS[l]&&LANGS[l].b)||"en-US";const v=pickVoice(c,l);if(v)u.voice=v;
+    u.lang=(LANGS[l]&&LANGS[l].b)||(typeof LANG_TAG!=="undefined"&&LANG_TAG[l])||"en-US";const v=pickVoice(c,l);if(v)u.voice=v; /* v19: registry tags beyond the original language list */
     u.onstart=()=>{const el=$("#mascot");if(el){el.classList.remove("is-think","is-happy");el.classList.add("is-talk")}};
     u.onboundary=e=>{ST.wb=performance.now();ST.wl=Math.max(2,e.charLength||4);ST.hasWB=true};
     u.onend=u.onerror=()=>{const el=$("#mascot");if(el)el.classList.remove("is-talk");if(after)after()};
